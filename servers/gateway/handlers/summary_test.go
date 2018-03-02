@@ -242,10 +242,26 @@ func TestExtractSummary(t *testing.T) {
 		},
 		{
 			"Attribute Order",
-			"Attributes in HTML can be in any order; don't assume a particular order",
-			pagePrologue + `<meta content="Open Graph Title" property="og:title"/>` + pageEiplogue,
+			"HTML elements and attributes can be in any order; don't assume a particular order",
+			pagePrologue + `
+			<meta content="test title" property="og:title">
+			<meta content="test type" property="og:type">
+			<meta content="http://test.com/test.png" property="og:image">
+			<meta content="test site name" property="og:site_name">
+			<meta content="test description" property="og:description">
+			<meta content="http://test.com" property="og:url">
+			` + pageEiplogue,
 			&PageSummary{
-				Title: "Open Graph Title",
+				Type:        "test type",
+				URL:         "http://test.com",
+				Title:       "test title",
+				SiteName:    "test site name",
+				Description: "test description",
+				Images: []*PreviewImage{
+					{
+						URL: "http://test.com/test.png",
+					},
+				},
 			},
 		},
 		{
