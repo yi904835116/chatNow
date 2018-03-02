@@ -321,11 +321,25 @@ func TestExtractSummary(t *testing.T) {
 		if err != nil && err != io.EOF {
 			t.Errorf("case %s: unexpected error %v\nHINT: %s\n", c.name, err, c.hint)
 		}
+		if summary == nil {
+			t.Errorf("case: %s: returned summary struct is nil", c.name)
+			continue
+		}
 		if !reflect.DeepEqual(summary, c.expectedSummary) {
-			expectedJSON, _ := json.MarshalIndent(c.expectedSummary, "", "  ")
-			actualJSON, _ := json.MarshalIndent(summary, "", "  ")
-			t.Errorf("case %s: incorrect result:\nEXPECTED: %s\nACTUAL: %s\nHINT: %s\n",
-				c.name, string(expectedJSON), string(actualJSON), c.hint)
+			//reflect.DeepEqual considers a non-nil empty slice to be different
+			//than a nill slice, so check for those cases first
+			if c.expectedSummary.Images == nil && summary.Images != nil {
+				t.Errorf("case %s: expected nil `Images` slice, but got a non-nill slice", c.name)
+			} else if c.expectedSummary.Keywords == nil && summary.Keywords != nil {
+				t.Errorf("case %s: expected nil `Keywords` slice, but got a non-nill slice", c.name)
+			} else if c.expectedSummary.Icon == nil && summary.Icon != nil {
+				t.Errorf("case %s: expected nil `Icon` pointer, but got a non-nill pointer", c.name)
+			} else {
+				expectedJSON, _ := json.MarshalIndent(c.expectedSummary, "", "  ")
+				actualJSON, _ := json.MarshalIndent(summary, "", "  ")
+				t.Errorf("case %s: incorrect result:\nEXPECTED: %s\nACTUAL: %s\nHINT: %s\n",
+					c.name, string(expectedJSON), string(actualJSON), c.hint)
+			}
 		}
 	}
 }
@@ -386,7 +400,7 @@ func TestSummaryHandler(t *testing.T) {
 	expectedctype := "application/json"
 	ctype := resp.Header().Get("Content-Type")
 	if len(ctype) == 0 {
-		t.Errorf("No `Content-Type` header found in the response: must be there and must start with `%s`", expectedctype)
+		t.Errorf("No `Content-Type` header found in the response: must be there start with `%s`", expectedctype)
 	} else if !strings.HasPrefix(ctype, expectedctype) {
 		t.Errorf("incorrect `Content-Type` header value: expected it to start with `%s` but got `%s`", expectedctype, ctype)
 	}
