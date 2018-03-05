@@ -1,22 +1,24 @@
 package users
 
-import (
-	"gopkg.in/mgo.v2/bson"
-)
-
+//gravatarBasePhotoURL is the base URL for Gravatar image requests.
+//See https://id.gravatar.com/site/implement/images/ for details
 const gravatarBasePhotoURL = "https://www.gravatar.com/avatar/"
 
+//bcryptCost is the default bcrypt cost to use when hashing passwords
 var bcryptCost = 13
+
+//UserID represents a user's permanent ID in the database
+type UserID int64
 
 //User represents a user account in the database
 type User struct {
-	ID        bson.ObjectId `json:"id" bson:"_id"`
-	Email     string        `json:"email"`
-	PassHash  []byte        `json:"-"` //stored, but not encoded to clients
-	UserName  string        `json:"userName"`
-	FirstName string        `json:"firstName"`
-	LastName  string        `json:"lastName"`
-	PhotoURL  string        `json:"photoURL"`
+	ID        UserID `json:"id"`
+	Email     string `json:"email"`
+	PassHash  []byte `json:"-"` //stored, but not encoded to clients
+	UserName  string `json:"userName"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	PhotoURL  string `json:"photoURL"`
 }
 
 //Credentials represents user sign-in credentials
@@ -58,17 +60,20 @@ func (nu *NewUser) Validate() error {
 //ToUser converts the NewUser to a User, setting the
 //PhotoURL and PassHash fields appropriately
 func (nu *NewUser) ToUser() (*User, error) {
-	//TODO: set the PhotoURL field of the new User to
-	//the Gravatar PhotoURL for the user's email address.
+	//TODO: call Validate() to validate the NewUser and
+	//return any validation errors that may occur.
+	//if valid, create a new *User and set the fields
+	//based on the field values in `nu`.
+	//Leave the ID field as the zero-value (will)
+	//be assigned to the new RDBMS primary key.
+	//Set the PhotoURL field to the Gravatar PhotoURL
+	//for the user's email address.
 	//see https://en.gravatar.com/site/implement/hash/
 	//and https://en.gravatar.com/site/implement/images/
 
-	//TODO: also set the ID field of the new User
-	//to a new bson ObjectId
-	//http://godoc.org/labix.org/v2/mgo/bson
-
 	//TODO: also call .SetPassword() to set the PassHash
 	//field of the User to a hash of the NewUser.Password
+
 	return nil, nil
 }
 
@@ -78,6 +83,7 @@ func (nu *NewUser) ToUser() (*User, error) {
 //space is put betweeen the names
 func (u *User) FullName() string {
 	//TODO: implement according to comment above
+
 	return ""
 }
 
@@ -85,6 +91,7 @@ func (u *User) FullName() string {
 func (u *User) SetPassword(password string) error {
 	//TODO: use the bcrypt package to generate a new hash of the password
 	//https://godoc.org/golang.org/x/crypto/bcrypt
+
 	return nil
 }
 
@@ -94,6 +101,7 @@ func (u *User) Authenticate(password string) error {
 	//TODO: use the bcrypt package to compare the supplied
 	//password with the stored PassHash
 	//https://godoc.org/golang.org/x/crypto/bcrypt
+
 	return nil
 }
 
@@ -101,8 +109,7 @@ func (u *User) Authenticate(password string) error {
 //is returned if the updates are invalid
 func (u *User) ApplyUpdates(updates *Updates) error {
 	//TODO: set the fields of `u` to the values of the related
-	//field in the `updates` struct, enforcing the following rules:
-	//- the FirstName must be non-zero-length
-	//- the LastName must be non-zero-length
+	//field in the `updates` struct
+
 	return nil
 }

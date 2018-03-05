@@ -69,7 +69,7 @@ func TestRedisStore(t *testing.T) {
 	}
 	if !reflect.DeepEqual(state, stateRet) {
 		jexp, _ := json.MarshalIndent(state, "", "  ")
-		jact, _ := json.MarshalIndent(state, "", "  ")
+		jact, _ := json.MarshalIndent(stateRet, "", "  ")
 		t.Errorf("incorrect state retrieved:\nEXPECTED\n%s\nACTUAL\n%s", string(jexp), string(jact))
 	}
 
