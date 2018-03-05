@@ -8,9 +8,10 @@ package handlers
 
 //TODO: start a goroutine that connects to the RabbitMQ server,
 //reads events off the queue, and broadcasts them to all of
-//the existing WebSocket connections. If you get an error
-//writing to the WebSocket, just close it and remove it
-//from the list (client went away without closing from
+//the existing WebSocket connections that should hear about
+//that event. If you get an error writing to the WebSocket,
+//just close it and remove it from the list
+//(client went away without closing from
 //their end). Also make sure you start a read pump that
 //reads incoming control messages, as described in the
 //Gorilla WebSocket API documentation:
