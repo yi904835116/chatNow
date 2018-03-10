@@ -19,12 +19,12 @@ type Store interface {
 	GetByUserName(username string) (*User, error)
 
 	//Insert inserts the user into the database, and returns
-	//the newly-inserted User, complete with the
-	// newly-assigned UserID
+	//the newly-inserted User, complete with the newly-assigned UserID
 	Insert(newUser *User) (*User, error)
 
 	//Update applies UserUpdates to the given user ID
-	Update(userID UserID, updates *Updates) error
+	//and returns the newly-updated user
+	Update(userID UserID, updates *Updates) (*User, error)
 
 	//Delete deletes the user with the given ID
 	Delete(userID UserID) error
