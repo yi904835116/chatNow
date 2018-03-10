@@ -13,8 +13,8 @@ type UserID int64
 //User represents a user account in the database
 type User struct {
 	ID        UserID `json:"id"`
-	Email     string `json:"email"`
-	PassHash  []byte `json:"-"` //stored, but not encoded to clients
+	Email     string `json:"-"` //never JSON encoded/decoded
+	PassHash  []byte `json:"-"` //never JSON encoded/decoded
 	UserName  string `json:"userName"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
@@ -50,7 +50,7 @@ func (nu *NewUser) Validate() error {
 	//- Email field must be a valid email address (hint: see mail.ParseAddress)
 	//- Password must be at least 6 characters
 	//- Password and PasswordConf must match
-	//- UserName must be non-zero length
+	//- UserName must be non-zero length and may not contain spaces
 	//use fmt.Errorf() to generate appropriate error messages if
 	//the new user doesn't pass one of the validation rules
 
