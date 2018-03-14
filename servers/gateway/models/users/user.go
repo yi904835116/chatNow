@@ -7,12 +7,9 @@ const gravatarBasePhotoURL = "https://www.gravatar.com/avatar/"
 //bcryptCost is the default bcrypt cost to use when hashing passwords
 var bcryptCost = 13
 
-//UserID represents a user's permanent ID in the database
-type UserID int64
-
 //User represents a user account in the database
 type User struct {
-	ID        UserID `json:"id"`
+	ID        int64  `json:"id"`
 	Email     string `json:"-"` //never JSON encoded/decoded
 	PassHash  []byte `json:"-"` //never JSON encoded/decoded
 	UserName  string `json:"userName"`
@@ -64,8 +61,9 @@ func (nu *NewUser) ToUser() (*User, error) {
 	//return any validation errors that may occur.
 	//if valid, create a new *User and set the fields
 	//based on the field values in `nu`.
-	//Leave the ID field as the zero-value (will)
-	//be assigned to the new RDBMS primary key.
+	//Leave the ID field as the zero-value; your Store
+	//implementation will set that field to the DBMS-assigned
+	//primary key value.
 	//Set the PhotoURL field to the Gravatar PhotoURL
 	//for the user's email address.
 	//see https://en.gravatar.com/site/implement/hash/
@@ -80,7 +78,8 @@ func (nu *NewUser) ToUser() (*User, error) {
 //FullName returns the user's full name, in the form:
 // "<FirstName> <LastName>"
 //If either first or last name is an empty string, no
-//space is put betweeen the names
+//space is put between the names. If both are missing,
+//this returns an empty string
 func (u *User) FullName() string {
 	//TODO: implement according to comment above
 
