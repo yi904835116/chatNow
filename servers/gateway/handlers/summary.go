@@ -1,8 +1,17 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"golang.org/x/net/html"
 )
 
 //PreviewImage represents a preview image for a page
@@ -27,6 +36,18 @@ type PageSummary struct {
 	Icon        *PreviewImage   `json:"icon,omitempty"`
 	Images      []*PreviewImage `json:"images,omitempty"`
 }
+
+const contentTypeJSON = "application/json"
+const contentTypeText = "text/plain"
+
+const headerContentType = "Content-Type"
+const headerAccessControlAllowOrigin = "Access-Control-Allow-Origin"
+
+//PageSummarySlice is a slice of *PageSummary,
+//that is, pointers to PageSummary struct
+type PageSummarySlice []*PageSummary
+
+const commonPrefix = "og:"
 
 //SummaryHandler handles requests for the page summary API.
 //This API expects one query string parameter named `url`,
@@ -56,6 +77,41 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 	https://golang.org/pkg/net/http/#Error
 	https://golang.org/pkg/encoding/json/#NewEncoder
 	*/
+	// url := path.Base(r.URL.Path)
+
+	w.Header().Add(headerContentType, contentTypeJSON)
+	w.Header().Add(headerAccessControlAllowOrigin, "*")
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+
+	URL := r.FormValue("url")
+	//if no `url` parameter was provided, respond with
+	//an http.StatusBadRequest error and return
+	if URL == "" {
+		http.Error(w, "Bad Request, no parameter key 'url' found", http.StatusBadRequest)
+		return
+	}
+
+	htmlStream, err := fetchHTML(URL)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	//call getPageSummary() passing the requested URL
+	//and holding on to the returned openGraphProps map
+	page, err := extractSummary(URL, htmlStream)
+
+	//if get back an error, respond to the client
+	//with that error and an http.StatusBadRequest code
+	if err != nil && err != io.EOF {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+
+	//otherwise, respond by writing the openGrahProps
+	//map as a JSON-encoded object
+	encoder := json.NewEncoder(w)
+	encoder.Encode(page)
+
 }
 
 //fetchHTML fetches `pageURL` and returns the body stream or an error.
@@ -76,7 +132,29 @@ func fetchHTML(pageURL string) (io.ReadCloser, error) {
 	Helpful Links:
 	https://golang.org/pkg/net/http/#Get
 	*/
-	return nil, nil
+	resp, err := http.Get(pageURL)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, err
+	}
+
+	//make sure the response body gets closed
+	defer resp.Body.Close()
+
+	//check if the response's Content-Type header
+	//starts with "text/html", return an error noting
+	//what the content type was and that you were
+	//expecting HTML
+	ctype := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(ctype, "text/html") {
+		return nil, errors.New("response content type was " + ctype + " not text/htm")
+	}
+
+	return resp.Body, nil
 }
 
 //extractSummary tokenizes the `htmlStream` and populates a PageSummary
@@ -96,5 +174,174 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 	https://developers.facebook.com/docs/reference/opengraph/
 	https://golang.org/pkg/net/url/#URL.ResolveReference
 	*/
+	reader, err := fetchHTML(pageURL)
+	if err != nil {
+		return nil, err
+	}
+
+	pageSummary := &PageSummary{}
+	previewImages := []*PreviewImage{}
+	previewImage := &PreviewImage{}
+
+	// Create a new tokenizer instance for http response body
+	tokenizer := html.NewTokenizer(reader)
+
+	for {
+		//get the next token type
+		tokenType := tokenizer.Next()
+
+		//if it's an error token, we either reached
+		//the end of the file, or the HTML was malformed
+		if tokenType == html.ErrorToken {
+			err := tokenizer.Err()
+			if err == io.EOF {
+				//end of the file, break out of the loop
+				break
+			}
+			return nil, tokenizer.Err()
+		}
+
+		// stop tokenizing after you encounter the </head> tag
+		if tokenType == html.EndTagToken {
+			token := tokenizer.Token()
+			if token.Data == "/head" {
+				return pageSummary, nil
+			}
+		}
+
+		//process the token according to the token type...
+		if tokenType == html.StartTagToken || tokenType == html.SelfClosingTagToken {
+			//get the token
+			token := tokenizer.Token()
+
+			if token.Data == "meta" {
+				var prop string
+				var content string
+				var name string
+				for _, attr := range token.Attr {
+					if attr.Key == "property" {
+						prop = attr.Val
+					} else if attr.Key == "content" {
+						content = attr.Val
+					} else if attr.Key == "name" {
+						name = attr.Val
+					}
+				}
+
+				// filling info for Type,URL,Title,SiteName,Description,Preview Image
+				switch prop {
+				case "og:type":
+					pageSummary.Type = content
+
+				case "og:url":
+					pageSummary.URL = content
+
+				case "og:title":
+					// twitterTitlePriority = false
+					pageSummary.Title = content
+
+				case "og:site_name":
+					pageSummary.SiteName = content
+
+				case "og:description":
+					if pageSummary.Description == "" {
+						pageSummary.Description = content
+					}
+					// Preview images.
+					// og:image or og:iamge:url indicates this is a new preview image.
+				case "og:image", "og:image:url":
+					// Create a new instance of PreviewImage.
+					previewImage = &PreviewImage{}
+
+					previewImage.URL = mergeURL(pageURL, content)
+					previewImages = append(previewImages, previewImage)
+					pageSummary.Images = previewImages
+
+				case "og:image:secure_url":
+					previewImage.SecureURL = mergeURL(pageURL, content)
+
+				case "og:image:type":
+					previewImage.Type = content
+
+				case "og:image:width", "og:image:height":
+					size, _ := strconv.Atoi(content)
+
+					if prop == "og:image:width" {
+						previewImage.Width = size
+					} else {
+						previewImage.Height = size
+					}
+
+				case "og:image:alt":
+					previewImage.Alt = content
+				}
+
+				// filling info forDescription,Author,Keywords
+				switch name {
+				case "og:description":
+					pageSummary.Description = name
+				case "author":
+					pageSummary.Author = name
+				case "keywords":
+					pageSummary.Keywords = regexp.MustCompile(",\\s*").Split(content, -1)
+				}
+
+			}
+
+			if token.Data == "link" {
+				var ref string
+				var href string
+				var typ string
+				var size string
+				for _, attr := range token.Attr {
+					if attr.Key == "ref" {
+						ref = attr.Val
+					} else if attr.Key == "href" {
+						href = attr.Val
+					} else if attr.Key == "type" {
+						typ = attr.Val
+					} else if attr.Key == "size" {
+						size = attr.Val
+					}
+				}
+
+				if ref == "icon" {
+					icon := &PreviewImage{
+						URL:  mergeURL(pageURL, href),
+						Type: typ,
+					}
+					arr := strings.Split(size, "x")
+					h, _ := strconv.Atoi(arr[0])
+					w, _ := strconv.Atoi(arr[1])
+
+					icon.Height = h
+					icon.Width = w
+
+					pageSummary.Icon = icon
+				}
+			}
+
+			//if the name of the element is "title"
+			if token.Data == "title" && pageSummary.Title == "" {
+				//the next token should be the page title
+				tokenType = tokenizer.Next()
+				//just make sure it's actually a text token
+				if tokenType == html.TextToken {
+					//report the page title and break out of the loop
+					pageSummary.Title = tokenizer.Token().Data
+				}
+			}
+
+		}
+
+	}
+
 	return nil, nil
+}
+
+func mergeURL(pageURL string, URL string) string {
+	u, _ := url.Parse(URL)
+	base, _ := url.Parse(pageURL)
+
+	return fmt.Sprintf("%b", base.ResolveReference(u))
 }

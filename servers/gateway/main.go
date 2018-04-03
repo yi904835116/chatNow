@@ -1,5 +1,13 @@
 package main
 
+import (
+	"log"
+	"net/http"
+	"os"
+
+	"github.com/info344-s18/challenges-yi904835116/servers/gateway/handlers"
+)
+
 //main is the main entry point for the server
 func main() {
 	/* TODO: add code to do the following
@@ -13,5 +21,21 @@ func main() {
 	  the root handler. Use log.Fatal() to report any errors
 	  that occur when trying to start the web server.
 	*/
+	//TODO: load the zip codes from "zips.csv"
+	//build a ZipIndex on the City field
+	//and start a web server that responds with
+	//all the Zips for a given city name
 
+	addr := os.Getenv("ADDR")
+	if len(addr) == 0 {
+		addr = ":80"
+	}
+
+	mux := http.NewServeMux()
+
+	// mux.HandleFunc("/", handlers.RootHandler)
+	mux.HandleFunc("/v1/summary", handlers.SummaryHandler)
+
+	log.Printf("server is listening at http://%s", addr)
+	log.Fatal(http.ListenAndServe(addr, mux))
 }
