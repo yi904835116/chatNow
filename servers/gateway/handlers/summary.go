@@ -77,13 +77,11 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 	https://golang.org/pkg/net/http/#Error
 	https://golang.org/pkg/encoding/json/#NewEncoder
 	*/
-	// url := path.Base(r.URL.Path)
 
 	w.Header().Add(headerContentType, contentTypeJSON)
 	w.Header().Add(headerAccessControlAllowOrigin, "*")
-	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 
-	URL := r.FormValue("url")
+	URL := r.URL.Query().Get("url")
 	//if no `url` parameter was provided, respond with
 	//an http.StatusBadRequest error and return
 	if URL == "" {
@@ -94,24 +92,27 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 	htmlStream, err := fetchHTML(URL)
 
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "error fetching HTML", http.StatusBadRequest)
+		return
 	}
 
+	//make sure the response body gets closed
+	defer htmlStream.Close()
 	//call getPageSummary() passing the requested URL
 	//and holding on to the returned openGraphProps map
 	page, err := extractSummary(URL, htmlStream)
 
 	//if get back an error, respond to the client
 	//with that error and an http.StatusBadRequest code
-	if err != nil && err != io.EOF {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error extracting summary: %v", err), http.StatusBadRequest)
+		return
 	}
 
 	//otherwise, respond by writing the openGrahProps
 	//map as a JSON-encoded object
 	encoder := json.NewEncoder(w)
 	encoder.Encode(page)
-
 }
 
 //fetchHTML fetches `pageURL` and returns the body stream or an error.
@@ -135,15 +136,12 @@ func fetchHTML(pageURL string) (io.ReadCloser, error) {
 	resp, err := http.Get(pageURL)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetchHTML failed: %v", err)
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, err
+		return nil, fmt.Errorf("fetchHTML failed, status code: %v", err)
 	}
-
-	//make sure the response body gets closed
-	defer resp.Body.Close()
 
 	//check if the response's Content-Type header
 	//starts with "text/html", return an error noting
@@ -160,31 +158,13 @@ func fetchHTML(pageURL string) (io.ReadCloser, error) {
 //extractSummary tokenizes the `htmlStream` and populates a PageSummary
 //struct with the page's summary meta-data.
 func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, error) {
-	/*TODO: tokenize the `htmlStream` and extract the page summary meta-data
-	according to the assignment description.
-
-	To test your implementation of this function, run the TestExtractSummary
-	test in summary_test.go. You can do that directly in Visual Studio Code,
-	or at the command line by running:
-		go test -run TestExtractSummary
-
-	Helpful Links:
-	https://drstearns.github.io/tutorials/tokenizing/
-	http://ogp.me/
-	https://developers.facebook.com/docs/reference/opengraph/
-	https://golang.org/pkg/net/url/#URL.ResolveReference
-	*/
-	reader, err := fetchHTML(pageURL)
-	if err != nil {
-		return nil, err
-	}
 
 	pageSummary := &PageSummary{}
 	previewImages := []*PreviewImage{}
 	previewImage := &PreviewImage{}
 
 	// Create a new tokenizer instance for http response body
-	tokenizer := html.NewTokenizer(reader)
+	tokenizer := html.NewTokenizer(htmlStream)
 
 	for {
 		//get the next token type
@@ -193,18 +173,13 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 		//if it's an error token, we either reached
 		//the end of the file, or the HTML was malformed
 		if tokenType == html.ErrorToken {
-			err := tokenizer.Err()
-			if err == io.EOF {
-				//end of the file, break out of the loop
-				break
-			}
-			return nil, tokenizer.Err()
+			return pageSummary, tokenizer.Err()
 		}
 
 		// stop tokenizing after you encounter the </head> tag
 		if tokenType == html.EndTagToken {
 			token := tokenizer.Token()
-			if token.Data == "/head" {
+			if token.Data == "head" {
 				return pageSummary, nil
 			}
 		}
@@ -228,6 +203,9 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 					}
 				}
 
+				fmt.Println("prop" + prop)
+				fmt.Println("content" + content)
+				fmt.Println("name" + name)
 				// filling info for Type,URL,Title,SiteName,Description,Preview Image
 				switch prop {
 				case "og:type":
@@ -323,12 +301,15 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 
 			//if the name of the element is "title"
 			if token.Data == "title" && pageSummary.Title == "" {
-				//the next token should be the page title
+				// //the next token should be the page title
 				tokenType = tokenizer.Next()
-				//just make sure it's actually a text token
+
+				// Just make sure it is actually a text token.
 				if tokenType == html.TextToken {
-					//report the page title and break out of the loop
-					pageSummary.Title = tokenizer.Token().Data
+					title := tokenizer.Token().Data
+					if pageSummary.Title == "" {
+						pageSummary.Title = title
+					}
 				}
 			}
 
@@ -336,12 +317,11 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 
 	}
 
-	return nil, nil
 }
 
 func mergeURL(pageURL string, URL string) string {
 	u, _ := url.Parse(URL)
 	base, _ := url.Parse(pageURL)
 
-	return fmt.Sprintf("%b", base.ResolveReference(u))
+	return fmt.Sprintf("%s", base.ResolveReference(u))
 }
