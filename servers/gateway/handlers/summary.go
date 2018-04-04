@@ -43,11 +43,13 @@ const contentTypeText = "text/plain"
 const headerContentType = "Content-Type"
 const headerAccessControlAllowOrigin = "Access-Control-Allow-Origin"
 
-//PageSummarySlice is a slice of *PageSummary,
-//that is, pointers to PageSummary struct
-type PageSummarySlice []*PageSummary
+// return an absolute path string
+func mergeURL(pageURL string, URL string) string {
+	u, _ := url.Parse(URL)
+	base, _ := url.Parse(pageURL)
 
-const commonPrefix = "og:"
+	return fmt.Sprintf("%s", base.ResolveReference(u))
+}
 
 //SummaryHandler handles requests for the page summary API.
 //This API expects one query string parameter named `url`,
@@ -55,35 +57,13 @@ const commonPrefix = "og:"
 //a JSON-encoded PageSummary struct containing the page summary
 //meta-data.
 func SummaryHandler(w http.ResponseWriter, r *http.Request) {
-	/*TODO: add code and additional functions to do the following:
-	- Add an HTTP header to the response with the name
-	 `Access-Control-Allow-Origin` and a value of `*`. This will
-	  allow cross-origin AJAX requests to your server.
-	- Get the `url` query string parameter value from the request.
-	  If not supplied, respond with an http.StatusBadRequest error.
-	- Call fetchHTML() to fetch the requested URL. See comments in that
-	  function for more details.
-	- Call extractSummary() to extract the page summary meta-data,
-	  as directed in the assignment. See comments in that function
-	  for more details
-	- Close the response HTML stream so that you don't leak resources.
-	- Finally, respond with a JSON-encoded version of the PageSummary
-	  struct. That way the client can easily parse the JSON back into
-	  an object. Remember to tell the client that the response content
-	  type is JSON.
-
-	Helpful Links:
-	https://golang.org/pkg/net/http/#Request.FormValue
-	https://golang.org/pkg/net/http/#Error
-	https://golang.org/pkg/encoding/json/#NewEncoder
-	*/
 
 	w.Header().Add(headerContentType, contentTypeJSON)
 	w.Header().Add(headerAccessControlAllowOrigin, "*")
 
 	URL := r.URL.Query().Get("url")
-	//if no `url` parameter was provided, respond with
-	//an http.StatusBadRequest error and return
+
+	fmt.Println("current url :" + URL)
 	if URL == "" {
 		http.Error(w, "Bad Request, no parameter key 'url' found", http.StatusBadRequest)
 		return
@@ -92,7 +72,7 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 	htmlStream, err := fetchHTML(URL)
 
 	if err != nil {
-		http.Error(w, "error fetching HTML", http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("error fetching HTML: %s\n", err), http.StatusBadRequest)
 		return
 	}
 
@@ -105,7 +85,7 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 	//if get back an error, respond to the client
 	//with that error and an http.StatusBadRequest code
 	if err != nil {
-		http.Error(w, fmt.Sprintf("error extracting summary: %v", err), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("error extracting summary: %s", err), http.StatusBadRequest)
 		return
 	}
 
@@ -119,20 +99,7 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 //Errors are returned if the response status code is an error (>=400),
 //or if the content type indicates the URL is not an HTML page.
 func fetchHTML(pageURL string) (io.ReadCloser, error) {
-	/*TODO: Do an HTTP GET for the page URL. If the response status
-	code is >= 400, return a nil stream and an error. If the response
-	content type does not indicate that the content is a web page, return
-	a nil stream and an error. Otherwise return the response body and
-	no (nil) error.
 
-	To test your implementation of this function, run the TestFetchHTML
-	test in summary_test.go. You can do that directly in Visual Studio Code,
-	or at the command line by running:
-		go test -run TestFetchHTML
-
-	Helpful Links:
-	https://golang.org/pkg/net/http/#Get
-	*/
 	resp, err := http.Get(pageURL)
 
 	if err != nil {
@@ -184,7 +151,6 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 			}
 		}
 
-		//process the token according to the token type...
 		if tokenType == html.StartTagToken || tokenType == html.SelfClosingTagToken {
 			//get the token
 			token := tokenizer.Token()
@@ -203,9 +169,6 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 					}
 				}
 
-				fmt.Println("prop" + prop)
-				fmt.Println("content" + content)
-				fmt.Println("name" + name)
 				// filling info for Type,URL,Title,SiteName,Description,Preview Image
 				switch prop {
 				case "og:type":
@@ -215,20 +178,14 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 					pageSummary.URL = content
 
 				case "og:title":
-					// twitterTitlePriority = false
 					pageSummary.Title = content
 
 				case "og:site_name":
 					pageSummary.SiteName = content
 
 				case "og:description":
-					if pageSummary.Description == "" {
-						pageSummary.Description = content
-					}
-					// Preview images.
-					// og:image or og:iamge:url indicates this is a new preview image.
+					pageSummary.Description = content
 				case "og:image", "og:image:url":
-					// Create a new instance of PreviewImage.
 					previewImage = &PreviewImage{}
 
 					previewImage.URL = mergeURL(pageURL, content)
@@ -256,50 +213,55 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 
 				// filling info forDescription,Author,Keywords
 				switch name {
-				case "og:description":
-					pageSummary.Description = name
+				case "description":
+					if pageSummary.Description == "" {
+						pageSummary.Description = content
+					}
 				case "author":
-					pageSummary.Author = name
+					pageSummary.Author = content
 				case "keywords":
-					pageSummary.Keywords = regexp.MustCompile(",\\s*").Split(content, -1)
+					arr := regexp.MustCompile(",\\s*")
+					pageSummary.Keywords = arr.Split(content, -1)
 				}
 
 			}
 
 			if token.Data == "link" {
-				var ref string
+				var rel string
 				var href string
 				var typ string
-				var size string
+				var sizes string
 				for _, attr := range token.Attr {
-					if attr.Key == "ref" {
-						ref = attr.Val
+					if attr.Key == "rel" {
+						rel = attr.Val
 					} else if attr.Key == "href" {
 						href = attr.Val
 					} else if attr.Key == "type" {
 						typ = attr.Val
-					} else if attr.Key == "size" {
-						size = attr.Val
+					} else if attr.Key == "sizes" {
+						sizes = attr.Val
 					}
 				}
 
-				if ref == "icon" {
+				if strings.Contains(rel, "icon") {
+					// create new icon instance
 					icon := &PreviewImage{
 						URL:  mergeURL(pageURL, href),
 						Type: typ,
 					}
-					arr := strings.Split(size, "x")
-					h, _ := strconv.Atoi(arr[0])
-					w, _ := strconv.Atoi(arr[1])
 
-					icon.Height = h
-					icon.Width = w
-
+					index := strings.Index(sizes, "x")
+					// if there is a valid size statement
+					if index != -1 {
+						width, _ := strconv.Atoi(sizes[index+1:])
+						height, _ := strconv.Atoi(sizes[:index])
+						icon.Width = width
+						icon.Height = height
+					}
 					pageSummary.Icon = icon
 				}
 			}
 
-			//if the name of the element is "title"
 			if token.Data == "title" && pageSummary.Title == "" {
 				// //the next token should be the page title
 				tokenType = tokenizer.Next()
@@ -316,12 +278,4 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 		}
 
 	}
-
-}
-
-func mergeURL(pageURL string, URL string) string {
-	u, _ := url.Parse(URL)
-	base, _ := url.Parse(pageURL)
-
-	return fmt.Sprintf("%s", base.ResolveReference(u))
 }
