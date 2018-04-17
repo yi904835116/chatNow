@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -38,7 +37,7 @@ type PageSummary struct {
 }
 
 const contentTypeJSON = "application/json"
-const contentTypeText = "text/plain"
+const contentTypeTextHTML = "text/html"
 
 const headerContentType = "Content-Type"
 const headerAccessControlAllowOrigin = "Access-Control-Allow-Origin"
@@ -114,9 +113,9 @@ func fetchHTML(pageURL string) (io.ReadCloser, error) {
 	//starts with "text/html", return an error noting
 	//what the content type was and that you were
 	//expecting HTML
-	ctype := resp.Header.Get("Content-Type")
-	if !strings.HasPrefix(ctype, "text/html") {
-		return nil, errors.New("response content type was " + ctype + " not text/htm")
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, contentTypeTextHTML) {
+		return nil, fmt.Errorf("response content type was %s, not text/html", contentType)
 	}
 
 	return resp.Body, nil
@@ -155,7 +154,9 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 			//get the token
 			token := tokenizer.Token()
 
-			if token.Data == "meta" {
+			switch token.Data {
+
+			case "meta":
 				var prop string
 				var content string
 				var name string
@@ -224,9 +225,7 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 					pageSummary.Keywords = arr.Split(content, -1)
 				}
 
-			}
-
-			if token.Data == "link" {
+			case "link":
 				var rel string
 				var href string
 				var typ string
@@ -260,17 +259,18 @@ func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, err
 					}
 					pageSummary.Icon = icon
 				}
-			}
 
-			if token.Data == "title" && pageSummary.Title == "" {
-				// //the next token should be the page title
-				tokenType = tokenizer.Next()
+			case "title":
+				if pageSummary.Title == "" {
+					// //the next token should be the page title
+					tokenType = tokenizer.Next()
 
-				// Just make sure it is actually a text token.
-				if tokenType == html.TextToken {
-					title := tokenizer.Token().Data
-					if pageSummary.Title == "" {
-						pageSummary.Title = title
+					// Just make sure it is actually a text token.
+					if tokenType == html.TextToken {
+						title := tokenizer.Token().Data
+						if pageSummary.Title == "" {
+							pageSummary.Title = title
+						}
 					}
 				}
 			}

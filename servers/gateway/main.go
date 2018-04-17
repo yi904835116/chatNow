@@ -12,7 +12,17 @@ import (
 func main() {
 	addr := os.Getenv("ADDR")
 	if len(addr) == 0 {
-		addr = ":80"
+		addr = ":443"
+	}
+
+	//get the TLS key and cert paths from environment variables
+	//this allows us to use a self-signed cert/key during development
+	//and the Let's Encrypt cert/key in production
+	tlsKeyPath := os.Getenv("TLSKEY")
+	tlsCertPath := os.Getenv("TLSCERT")
+
+	if len(tlsKeyPath) == 0 || len(tlsCertPath) == 0 {
+		log.Fatal("Please set TLSCERT and TLSKEY")
 	}
 
 	mux := http.NewServeMux()
@@ -20,6 +30,6 @@ func main() {
 	// mux.HandleFunc("/", handlers.RootHandler)
 	mux.HandleFunc("/v1/summary", handlers.SummaryHandler)
 
-	log.Printf("server is listening at http://%s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Printf("Server is listening at https://%s\n", addr)
+	log.Fatal(http.ListenAndServeTLS(addr, tlsCertPath, tlsKeyPath, mux))
 }

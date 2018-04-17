@@ -3,7 +3,7 @@ $(document).ready(function () {
     var $input = $('#url');
     var $pageSum = $('#summary');
     var $error = $('#error');
-    let baseURL = "http://localhost:4000/v1/summary?url="
+    let baseURL = "https://api.patrick-yi.com/v1/summary?url=";
 
 
     $form.submit(function (e) {
@@ -17,16 +17,17 @@ $(document).ready(function () {
         url = encodeURIComponent(url);
         console.log("url" + url)
 
+        // should change
         url = baseURL + url;
 
         $.ajax({
                 url: url
             })
             .done(function (data) {
-                var summary = ""
-                var images = ""
-                var title = ""
-                var desc = ""
+                var summary = "";
+                var images = "";
+                var title = "";
+                var desc = "";
 
                 for (each in data) {
                     switch (each) {
