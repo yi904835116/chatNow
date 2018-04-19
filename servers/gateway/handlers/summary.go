@@ -126,7 +126,9 @@ func fetchHTML(pageURL string) (io.ReadCloser, error) {
 func extractSummary(pageURL string, htmlStream io.ReadCloser) (*PageSummary, error) {
 
 	pageSummary := &PageSummary{}
+
 	previewImages := []*PreviewImage{}
+
 	previewImage := &PreviewImage{}
 
 	// Create a new tokenizer instance for http response body
