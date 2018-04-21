@@ -1,5 +1,16 @@
 package users
 
+import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
+	"io"
+	"net/mail"
+	"strings"
+
+	"golang.org/x/crypto/bcrypt"
+)
+
 //gravatarBasePhotoURL is the base URL for Gravatar image requests.
 //See https://id.gravatar.com/site/implement/images/ for details
 const gravatarBasePhotoURL = "https://www.gravatar.com/avatar/"
@@ -51,13 +62,38 @@ func (nu *NewUser) Validate() error {
 	//use fmt.Errorf() to generate appropriate error messages if
 	//the new user doesn't pass one of the validation rules
 
+	// Email field must be a valid email address (hint: see mail.ParseAddress)
+	_, err := mail.ParseAddress(nu.Email)
+	if err != nil {
+		return fmt.Errorf("error validating email: %v", err)
+	}
+
+	// Password must be at least 6 characters
+	if len(nu.Password) < 6 {
+		return fmt.Errorf("password must be at least 6 characters")
+	}
+
+	// Password and PasswordConf must match
+	if nu.Password != nu.PasswordConf {
+		return fmt.Errorf("password must match password confirmation")
+	}
+
+	// UserName must be non-zero length.
+	if len(nu.UserName) == 0 {
+		return fmt.Errorf("username must be non-zero length")
+	}
+	// username may not contain spaces
+	if strings.Contains(nu.UserName, " ") {
+		return fmt.Errorf("username may not contain spaces")
+	}
+
 	return nil
 }
 
 //ToUser converts the NewUser to a User, setting the
 //PhotoURL and PassHash fields appropriately
 func (nu *NewUser) ToUser() (*User, error) {
-	//TODO: call Validate() to validate the NewUser and
+	//call Validate() to validate the NewUser and
 	//return any validation errors that may occur.
 	//if valid, create a new *User and set the fields
 	//based on the field values in `nu`.
@@ -69,10 +105,47 @@ func (nu *NewUser) ToUser() (*User, error) {
 	//see https://en.gravatar.com/site/implement/hash/
 	//and https://en.gravatar.com/site/implement/images/
 
-	//TODO: also call .SetPassword() to set the PassHash
+	err := nu.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("error validating NewUser: %v", err)
+	}
+
+	user := &User{
+		UserName:  nu.UserName,
+		FirstName: nu.FirstName,
+		LastName:  nu.LastName,
+	}
+
+	// Trim leading and trailing whitespace from an email address.
+	email := strings.TrimSpace(nu.Email)
+
+	// Force all characters in the email to be lower-case.
+	email = strings.ToLower(email)
+
+	// Update Email field.
+	user.Email = email
+
+	// md5 hash the final email string.
+	h := md5.New()
+	io.WriteString(h, nu.Email)
+	src := h.Sum(nil)
+	result := hex.EncodeToString(src)
+
+	// Set the PhotoURL field of the new User to
+	// the Gravatar PhotoURL for the user's email address.
+	photoURL := gravatarBasePhotoURL + result
+	user.PhotoURL = photoURL
+
+	//also call .SetPassword() to set the PassHash
 	//field of the User to a hash of the NewUser.Password
 
-	return nil, nil
+	err = user.SetPassword(nu.Password)
+
+	if err != nil {
+		return nil, fmt.Errorf("error setting password for the User: %v", err)
+	}
+
+	return user, nil
 }
 
 //FullName returns the user's full name, in the form:
@@ -82,33 +155,50 @@ func (nu *NewUser) ToUser() (*User, error) {
 //this returns an empty string
 func (u *User) FullName() string {
 	//TODO: implement according to comment above
-
-	return ""
+	return strings.TrimSpace(u.FirstName + " " + u.LastName)
 }
 
 //SetPassword hashes the password and stores it in the PassHash field
 func (u *User) SetPassword(password string) error {
-	//TODO: use the bcrypt package to generate a new hash of the password
+	//use the bcrypt package to generate a new hash of the password
 	//https://godoc.org/golang.org/x/crypto/bcrypt
-
+	passwordHashCode, err := bcrypt.GenerateFromPassword([]byte(password), bcryptCost)
+	if err != nil {
+		return fmt.Errorf("error generating bcrypt hash: %v", err)
+	}
+	u.PassHash = passwordHashCode
 	return nil
 }
 
 //Authenticate compares the plaintext password against the stored hash
 //and returns an error if they don't match, or nil if they do
 func (u *User) Authenticate(password string) error {
-	//TODO: use the bcrypt package to compare the supplied
+	// use the bcrypt package to compare the supplied
 	//password with the stored PassHash
-	//https://godoc.org/golang.org/x/crypto/bcrypt
-
+	passhash := u.PassHash
+	err := bcrypt.CompareHashAndPassword(passhash, []byte(password))
+	if err != nil {
+		return fmt.Errorf("Invalid Password: %v", err)
+	}
 	return nil
 }
 
 //ApplyUpdates applies the updates to the user. An error
 //is returned if the updates are invalid
 func (u *User) ApplyUpdates(updates *Updates) error {
-	//TODO: set the fields of `u` to the values of the related
+	// set the fields of `u` to the values of the related
 	//field in the `updates` struct
+
+	if len(updates.LastName) == 0 {
+		return fmt.Errorf("last name can not be empty string")
+	}
+
+	if len(updates.FirstName) == 0 {
+		return fmt.Errorf("first name can not be empty string")
+	}
+
+	u.LastName = updates.LastName
+	u.FirstName = updates.FirstName
 
 	return nil
 }
