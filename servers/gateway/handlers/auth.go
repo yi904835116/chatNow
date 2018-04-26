@@ -18,8 +18,7 @@ import (
 //struct as the receiver on these functions so that you have
 //access to things like the session store and user store.
 
-// UsersHandler handles requests for the "users" resource,
-// and allows clients to create new user accounts.
+// UsersHandler handles requests for the "users" resource.
 func (context *HandlerContext) UsersHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "expect POST method only", http.StatusMethodNotAllowed)
@@ -80,7 +79,7 @@ func (context *HandlerContext) UsersHandler(w http.ResponseWriter, r *http.Reque
 	beginNewSession(context, user, w)
 }
 
-// SpecificUserHandler handles requests for the "current user" resource.
+// SpecificUserHandler handles requests for a specific user.
 func (context *HandlerContext) SpecificUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Get session state from session store.
 
@@ -175,8 +174,7 @@ func (context *HandlerContext) SpecificUserHandler(w http.ResponseWriter, r *htt
 	}
 }
 
-// SessionsHandler handles requests for the "sessions" resource,
-// and allows clients to begin a new session using an existing user's credentials.
+// SessionsHandler handles requests for the "sessions" resource, and allows clients to begin a new session using an existing user's credentials.
 func (context *HandlerContext) SessionsHandler(w http.ResponseWriter, r *http.Request) {
 	// Method must be POST.
 	if r.Method != "POST" {
@@ -197,12 +195,6 @@ func (context *HandlerContext) SessionsHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	// err = blockRepeatedFailedSignIns(context, credentials.Email)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusBadRequest)
-	// 	return
-	// }
-
 	// Get the user with the provided email from the UserStore.
 	// If not found, respond with an http.StatusUnauthorized error
 	// and the message "invalid credentials".
@@ -219,14 +211,6 @@ func (context *HandlerContext) SessionsHandler(w http.ResponseWriter, r *http.Re
 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
-
-	// // If the user signs in successfully,
-	// // delete Attempt data associated with the email.
-	// err = context.AttemptStore.Delete(credentials.Email)
-	// if err != nil {
-	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
-	// 	return
-	// }
 
 	beginNewSession(context, user, w)
 }
@@ -254,8 +238,7 @@ func (context *HandlerContext) SpecificSessionHandler(w http.ResponseWriter, r *
 	w.Write([]byte("signed out"))
 }
 
-// begineNewSession begins a new session
-// and respond to the client with the User encoded as a JSON object.
+// begineNewSession begins a new session process
 func beginNewSession(context *HandlerContext, user *users.User, w http.ResponseWriter) {
 	sessionState := SessionState{
 		BeginTime: time.Now(),

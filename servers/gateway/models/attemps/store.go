@@ -7,7 +7,7 @@ import (
 
 // ErrAttemptNotFound is returned if no Attempt is found
 // for a given email.
-var ErrAttemptNotFound = errors.New("attempt not found")
+var AttemptNotFound = errors.New("attempt not found")
 
 // Store stores user failed sign-in attempts.
 type Store interface {

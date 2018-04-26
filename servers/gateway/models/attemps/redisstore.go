@@ -30,7 +30,7 @@ func NewRedisStore(client *redis.Client) *RedisStore {
 	}
 }
 
-// Save saves the provided email and Attempt to the store.
+// Save saves the  email and corresponding attempts to the store.
 func (rs *RedisStore) Save(email string, attempt *Attempt, expiry time.Duration) error {
 	j, err := json.Marshal(attempt)
 	if nil != err {
@@ -45,12 +45,11 @@ func (rs *RedisStore) Save(email string, attempt *Attempt, expiry time.Duration)
 	return nil
 }
 
-// Get populates attempt with the data previously saved
-// for the given email.
+// Get gets attempt with the data previously saved for the input email.
 func (rs *RedisStore) Get(email string, attempt *Attempt) error {
 	val, err := rs.Client.Get(email).Bytes()
 	if err != nil {
-		return ErrAttemptNotFound
+		return AttemptNotFound
 	}
 
 	err = json.Unmarshal(val, attempt)
