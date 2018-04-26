@@ -65,7 +65,7 @@ func (nu *NewUser) Validate() error {
 	// Email field must be a valid email address (hint: see mail.ParseAddress)
 	_, err := mail.ParseAddress(nu.Email)
 	if err != nil {
-		return fmt.Errorf("error validating email: %v", err)
+		return fmt.Errorf("error validating email : %v", err)
 	}
 
 	// Password must be at least 6 characters

@@ -1,5 +1,11 @@
 
+set -e
+
 ./build.sh
+
+# ../db/build.sh
+
+docker push yi904835116/info344-mysql
 
 docker push yi904835116/info344-server
 
