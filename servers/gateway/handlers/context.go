@@ -22,16 +22,14 @@ type HandlerContext struct {
 	SigningKey string
 	// The type is an Store interface
 	// rather than an actual Store implementation.
-	SessionStore   sessions.Store
-	UserStore      users.Store
-	AttemptStore   attempts.Store
+	SessionStore sessions.Store
+	UserStore    users.Store
+	// AttemptStore attempts.Store
 }
 
 // NewHandlerContext constructs a new HanderContext,
 // ensuring that the dependencies are valid values.
-func NewHandlerContext(signingKey string, sessionStore sessions.Store, userStore users.Store, attemptStore attempts.Store
-//, resetCodeStore resetcodes.Store
-) *HandlerContext {
+func NewHandlerContext(signingKey string, sessionStore sessions.Store, userStore users.Store) *HandlerContext {
 
 	if len(signingKey) == 0 {
 		panic("signing key has length of zero")

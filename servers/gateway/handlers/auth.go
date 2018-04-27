@@ -91,7 +91,12 @@ func (context *HandlerContext) SpecificUserHandler(w http.ResponseWriter, r *htt
 	}
 
 	path := path.Base(r.URL.Path)
-	givenID, err := strconv.ParseInt(path, 10, 64)
+
+	var givenID int64
+
+	if path != "me" {
+		givenID, err = strconv.ParseInt(path, 10, 64)
+	}
 
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error parsing ID: %v", err), http.StatusInternalServerError)
@@ -103,7 +108,13 @@ func (context *HandlerContext) SpecificUserHandler(w http.ResponseWriter, r *htt
 	// Get the current user from the session state and respond with that user encoded as JSON object.
 	case "GET":
 
-		user, err := context.UserStore.GetByID(givenID)
+		var user *users.User
+
+		if path == "me" {
+			user, err = sessionState.User, nil
+		} else {
+			user, err = context.UserStore.GetByID(givenID)
+		}
 
 		if err != nil {
 			http.Error(w, fmt.Sprintf("no user is found with given ID: %v", err), http.StatusNotFound)

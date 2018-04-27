@@ -1,10 +1,10 @@
 var user = {};
 var hasUser = false;
 
-var firstName = document.querySelector(".firstName");
-var lastName = document.querySelector(".lastName");
+var firstName = document.querySelector("#firstName");
+var lastName = document.querySelector("#lastName");
 
-var button = document.querySelector(".signOut");
+var button = document.querySelector("#signOut");
 
 function checkRefresh() {
     authenticateUser();
@@ -13,7 +13,6 @@ function checkRefresh() {
 function authenticateUser() {
     const sessionToken = this.getSessionToken();
 
-    this.setState({sessionToken: sessionToken});
     const url = `https://api.patrick-yi.com/v1/users/me`;
     // Validate this session token.
     fetch(url, {
