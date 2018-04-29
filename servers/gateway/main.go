@@ -25,6 +25,12 @@ func main() {
 		log.Fatal("Please set TLSCERT and TLSKEY")
 	}
 
+	// Set up Redis connection.
+	redisAddr := os.Getenv("REDISADDR")
+	if len(redisAddr) == 0 {
+		redisAddr = "localhost:6379"
+	}
+
 	mux := http.NewServeMux()
 
 	// mux.HandleFunc("/", handlers.RootHandler)
