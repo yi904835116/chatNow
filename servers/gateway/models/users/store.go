@@ -2,6 +2,8 @@ package users
 
 import (
 	"errors"
+
+	"github.com/info344-s18/challenges-yi904835116/servers/gateway/indexes"
 )
 
 //ErrUserNotFound is returned when the user can't be found
@@ -28,4 +30,10 @@ type Store interface {
 
 	//Delete deletes the user with the given ID
 	Delete(id int64) error
+
+	// return trie tree for exsiting users
+	Trie() (*indexes.Trie, error)
+
+	// ConvertIDToUsers converts all keys(User IDs) in a given map to a slice of User.
+	ConvertIDToUsers(ids map[int64]bool) ([]*User, error)
 }

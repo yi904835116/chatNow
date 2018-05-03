@@ -80,8 +80,13 @@ func main() {
 
 	userStore := users.NewMySQLStore(db)
 
-	context := handlers.NewHandlerContext(sessionKey, sessionStore, userStore)
-	// , attemptStore, resetCodeStore
+	trieTree, err := userStore.Trie()
+
+	if err != nil {
+		log.Fatalf("error constructing user trie tree: %v", err)
+	}
+
+	context := handlers.NewHandlerContext(sessionKey, sessionStore, userStore, trieTree)
 
 	mux := http.NewServeMux()
 

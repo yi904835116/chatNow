@@ -56,16 +56,11 @@ function handleSubmitSigninForm(e) {
         if (typeof data === 'string') {
             throw Error(data);
         } else {
-            // If the data type is not a string, it means the user is authenticated, clear
-            // form and redirect the user to app page. this.refs.signinEmail['value'] = '';
-            // this.refs.signinPassword['value'] = ''; this.setState({     signinError: ''
-            // });
             window
                 .location
                 .replace('app.html');
         }
     }).catch(error => {
-        // this.setState({     signinError: error.message });
         alert(error);
     });
 }

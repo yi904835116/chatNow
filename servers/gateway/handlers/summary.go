@@ -55,6 +55,8 @@ func SummaryHandler(w http.ResponseWriter, r *http.Request) {
 
 	URL := r.URL.Query().Get("url")
 
+	defer r.URL.Query()
+
 	fmt.Println("current url :" + URL)
 	if URL == "" {
 		http.Error(w, "Bad Request, no parameter key 'url' found", http.StatusBadRequest)

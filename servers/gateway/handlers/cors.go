@@ -12,6 +12,7 @@ with the following headers to all requests:
   Access-Control-Expose-Headers: Authorization
   Access-Control-Max-Age: 600
 */
+
 // CORSHandler creates a CORS middleware handler that wraps these other handler functions
 type CORSHandler struct {
 	wrappedHandler http.Handler
