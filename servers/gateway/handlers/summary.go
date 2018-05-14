@@ -36,12 +36,6 @@ type PageSummary struct {
 	Images      []*PreviewImage `json:"images,omitempty"`
 }
 
-const contentTypeJSON = "application/json"
-const contentTypeTextHTML = "text/html"
-
-const headerContentType = "Content-Type"
-const headerAccessControlAllowOrigin = "Access-Control-Allow-Origin"
-
 // return an absolute path string
 func mergeURL(pageURL string, URL string) string {
 	u, _ := url.Parse(URL)
@@ -56,7 +50,6 @@ func mergeURL(pageURL string, URL string) string {
 //a JSON-encoded PageSummary struct containing the page summary
 //meta-data.
 func SummaryHandler(w http.ResponseWriter, r *http.Request) {
-
 	w.Header().Add(headerContentType, contentTypeJSON)
 	w.Header().Add(headerAccessControlAllowOrigin, "*")
 

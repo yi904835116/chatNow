@@ -143,17 +143,17 @@ func (store *MySQLStore) Insert(user *User) (*User, error) {
 }
 
 // Update applies UserUpdates to the given user ID.
-func (store *MySQLStore) Update(userID int64, updates *Updates) error {
+func (store *MySQLStore) Update(userID int64, updates *Updates) (*User, error) {
 	if updates == nil {
-		return fmt.Errorf("Updates is nil")
+		return nil, fmt.Errorf("Updates is nil")
 	}
 
 	_, err := store.db.Exec(sqlUpdate, updates.FirstName, updates.LastName, userID)
 	if err != nil {
-		return fmt.Errorf("error updating user: %v", err)
+		return nil, fmt.Errorf("error updating user: %v", err)
 	}
 
-	return nil
+	return store.GetByID(userID)
 }
 
 // Delete deletes the user with the given ID.
