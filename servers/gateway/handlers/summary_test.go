@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
@@ -242,10 +244,26 @@ func TestExtractSummary(t *testing.T) {
 		},
 		{
 			"Attribute Order",
-			"Attributes in HTML can be in any order; don't assume a particular order",
-			pagePrologue + `<meta content="Open Graph Title" property="og:title"/>` + pageEiplogue,
+			"HTML elements and attributes can be in any order; don't assume a particular order",
+			pagePrologue + `
+			<meta content="test title" property="og:title">
+			<meta content="test type" property="og:type">
+			<meta content="http://test.com/test.png" property="og:image">
+			<meta content="test site name" property="og:site_name">
+			<meta content="test description" property="og:description">
+			<meta content="http://test.com" property="og:url">
+			` + pageEiplogue,
 			&PageSummary{
-				Title: "Open Graph Title",
+				Type:        "test type",
+				URL:         "http://test.com",
+				Title:       "test title",
+				SiteName:    "test site name",
+				Description: "test description",
+				Images: []*PreviewImage{
+					{
+						URL: "http://test.com/test.png",
+					},
+				},
 			},
 		},
 		{
@@ -303,11 +321,25 @@ func TestExtractSummary(t *testing.T) {
 		if err != nil && err != io.EOF {
 			t.Errorf("case %s: unexpected error %v\nHINT: %s\n", c.name, err, c.hint)
 		}
+		if summary == nil {
+			t.Errorf("case: %s: returned summary struct is nil", c.name)
+			continue
+		}
 		if !reflect.DeepEqual(summary, c.expectedSummary) {
-			expectedJSON, _ := json.MarshalIndent(c.expectedSummary, "", "  ")
-			actualJSON, _ := json.MarshalIndent(summary, "", "  ")
-			t.Errorf("case %s: incorrect result:\nEXPECTED: %s\nACTUAL: %s\nHINT: %s\n",
-				c.name, string(expectedJSON), string(actualJSON), c.hint)
+			//reflect.DeepEqual considers a non-nil empty slice to be different
+			//than a nill slice, so check for those cases first
+			if c.expectedSummary.Images == nil && summary.Images != nil {
+				t.Errorf("case %s: expected nil `Images` slice, but got a non-nill slice", c.name)
+			} else if c.expectedSummary.Keywords == nil && summary.Keywords != nil {
+				t.Errorf("case %s: expected nil `Keywords` slice, but got a non-nill slice", c.name)
+			} else if c.expectedSummary.Icon == nil && summary.Icon != nil {
+				t.Errorf("case %s: expected nil `Icon` pointer, but got a non-nill pointer", c.name)
+			} else {
+				expectedJSON, _ := json.MarshalIndent(c.expectedSummary, "", "  ")
+				actualJSON, _ := json.MarshalIndent(summary, "", "  ")
+				t.Errorf("case %s: incorrect result:\nEXPECTED: %s\nACTUAL: %s\nHINT: %s\n",
+					c.name, string(expectedJSON), string(actualJSON), c.hint)
+			}
 		}
 	}
 }
@@ -353,5 +385,23 @@ func TestFetchHTML(t *testing.T) {
 			stream.Close()
 		}
 	}
+}
 
+func TestSummaryHandler(t *testing.T) {
+	//verify that response has
+	// - correct response status code
+	// - correct Content-Type header
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/v1/summary?url=http://ogp.me", nil)
+	SummaryHandler(resp, req)
+	if resp.Code != http.StatusOK {
+		t.Errorf("incorrect response status code: expected %d but got %d", http.StatusOK, resp.Code)
+	}
+	expectedctype := "application/json"
+	ctype := resp.Header().Get("Content-Type")
+	if len(ctype) == 0 {
+		t.Errorf("No `Content-Type` header found in the response: must be there start with `%s`", expectedctype)
+	} else if !strings.HasPrefix(ctype, expectedctype) {
+		t.Errorf("incorrect `Content-Type` header value: expected it to start with `%s` but got `%s`", expectedctype, ctype)
+	}
 }
