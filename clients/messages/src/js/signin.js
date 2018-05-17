@@ -12,7 +12,6 @@ signUpForm.addEventListener("submit", function (evt) {
 // Sign in the user and save the session token in local storage.
 function handleSubmitSigninForm(e) {
     e.preventDefault();
-
     var emailInput = document
         .getElementById("email-input")
         .value;
