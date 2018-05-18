@@ -55,7 +55,7 @@ function ChannelHandler(app, channelStore, messageStore) {
         channelStore
             .get(channelID)
             .then(channel => {
-                if (channel.private && channel.members) {
+                if (channel.privateChannel && channel.members) {
                     let userJSON = req.get('X-User');
                     let user = JSON.parse(userJSON);
                     if (members.indexOf(user.id) == -1) {
@@ -92,7 +92,7 @@ function ChannelHandler(app, channelStore, messageStore) {
         channelStore
             .get(channelID)
             .then(channel => {
-                if (channel.private && channel.members) {
+                if (channel.privateChannel && channel.members) {
                     if (members.indexOf(user.id) == -1) {
                         res.set('Content-Type', 'text/plain');
                         res
@@ -331,6 +331,4 @@ function ChannelHandler(app, channelStore, messageStore) {
 
 };
 
-module.exports = {
-    ChannelHandler
-}
+module.exports = ChannelHandler;

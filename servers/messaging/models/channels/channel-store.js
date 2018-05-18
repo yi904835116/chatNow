@@ -9,13 +9,13 @@ class ChannelStore {
 
     // insert() creates a new channel in MongoDB.
     insert(channel) {
-        channel.id = new mongodb.ObjectID();
+        channel._id = new mongodb.ObjectID();
         return this.collection.insertOne(channel).then(() => channel);
     }
 
     // get() retrieves one channel from MongoDB for a given channel ID.
     get(id) {
-        return this.collection.findOne({ id: id });
+        return this.collection.findOne({ _id: id });
     }
 
     // getByName retrieves one channel from MongoDB for a given channel name.
@@ -38,7 +38,7 @@ class ChannelStore {
             $set: updates
         };
         return this.collection
-            .findOneAndUpdate({ id: id }, updateDoc, { returnOriginal: false })
+            .findOneAndUpdate({ _id: id }, updateDoc, { returnOriginal: false })
             .then(result => {
                 return result.value;
             });
@@ -46,7 +46,7 @@ class ChannelStore {
 
     // delete() deletes a channel for a given channel ID.
     delete(id) {
-        return this.collection.deleteOne({ id: id });
+        return this.collection.deleteOne({ _id: id });
     }
 }
 

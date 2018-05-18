@@ -176,11 +176,11 @@ func (store *MySQLStore) Trie() (*indexes.Trie, error) {
 	trie := indexes.NewTrie()
 	rows, err := store.db.Query(sqlSelectAll)
 
-	defer rows.Close()
-
 	if err != nil {
 		return nil, fmt.Errorf("error selecting user: %v", err)
 	}
+
+	defer rows.Close()
 
 	users, err := handleResult(rows)
 	if err != nil {

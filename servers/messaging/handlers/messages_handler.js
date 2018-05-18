@@ -39,11 +39,10 @@ function MessageHandler(app, messageStore) {
     });
 
     // Allow message creator to delete this message.
-    router.delete('/v1/messages/:messageID', (req, res, next) => {
+    app.delete('/v1/messages/:messageID', (req, res, next) => {
         const userJSON = req.get('X-User');
         const user = JSON.parse(userJSON);
         const messageID = new mongodb.ObjectID(req.params.messageID);
-
         messageStore
             .get(messageID)
             .then(message => {

@@ -1,13 +1,13 @@
 'use strict';
 
 class Channel {
-    constructor(name, description, private, members, creator) {
+    constructor(name, description, privateChannel, members, creator) {
 
         this.name = name;
 
         this.description = description;
 
-        this.private = private;
+        this.privateChannel = privateChannel;
 
         this.members = members;
 

@@ -2,7 +2,9 @@ set -e
 
 export MESSAGING_CONTAINER=info-344-messaging
 export MQ_CONTAINER=rabbitmq-server
+export MONGO_CONTAINER=mongo-server
 export APP_NETWORK=appnet
+export DBNAME="info_344"
 
 docker pull yi904835116/$MESSAGING_CONTAINER
 
@@ -10,14 +12,25 @@ if [ "$(docker ps -aq --filter name=$MESSAGING_CONTAINER)" ]; then
     docker rm -f $MESSAGING_CONTAINER
 fi
 
+if [ "$(docker ps -aq --filter name=$MONGO_CONTAINER)" ]; then
+    docker rm -f $MONGO_CONTAINER
+fi
+
 if [ "$(docker images -q -f dangling=true)" ]; then
     docker rmi $(docker images -q -f dangling=true)
 fi
 
-
 if ! [ "$(docker network ls | grep $APP_NETWORK)" ]; then
     docker network create $APP_NETWORK
 fi
+
+# Run Mongo Docker container inside our appnet private network.
+docker run \
+-d \
+--name mongo-server \
+--network $APP_NETWORK \
+--restart unless-stopped \
+mongo
 
 # No need to specify Redis port here,
 # because it is default to 6379.

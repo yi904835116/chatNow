@@ -9,13 +9,13 @@ class MessageStore {
 
     // insert() creates a new message in MongoDB.
     insert(message) {
-        message.id = new mongodb.ObjectID();
+        message._id = new mongodb.ObjectID();
         return this.collection.insertOne(message).then(() => message);
     }
 
     // get() retrieves one message from MongoDB for a given message ID.
     get(id) {
-        return this.collection.findOne({ id: id });
+        return this.collection.findOne({ _id: id });
     }
 
     // getAll() retrieves up to 100 messages from MongoDB for a given channel ID.
@@ -33,7 +33,7 @@ class MessageStore {
             $set: updates
         };
         return this.collection
-            .findOneAndUpdate({ id: id }, updateDoc, { returnOriginal: false })
+            .findOneAndUpdate({ _id: id }, updateDoc, { returnOriginal: false })
             .then(result => {
                 return result.value;
             });
@@ -41,7 +41,7 @@ class MessageStore {
 
     // delete() deletes a message for a given message ID.
     delete(id) {
-        return this.collection.deleteOne({ id: id });
+        return this.collection.deleteOne({ _id: id });
     }
 
     // deleteAll() deletes all messages for a given channel ID.
