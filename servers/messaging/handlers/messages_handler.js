@@ -1,4 +1,6 @@
 const express = require("express");
+const Message = require('./../models/messages/message');
+const mongodb = require('mongodb');
 
 function MessageHandler(app, messageStore) {
     if (!messageStore) {

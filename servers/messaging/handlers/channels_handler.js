@@ -1,4 +1,7 @@
 const express = require("express");
+const Channel = require('./../models/channels/channel');
+const mongodb = require('mongodb');
+
 
 function ChannelHandler(app, channelStore, messageStore) {
 
