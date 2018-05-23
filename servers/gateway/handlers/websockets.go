@@ -50,9 +50,7 @@ func (ctx *HandlerContext) NewWebSocketsHandler(notifier *Notifier) *WebSocketsH
 
 // ServeHTTP implements the http.Handler interface for the WebSocketsHandler.
 func (wsh *WebSocketsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Users must be authenticated to upgrade to a WebSocket.
-	// if we get an error when retrieving the session state,
-	// respond with an http.StatusUnauthorized.
+	// Users must be authenticated before upgrading to a WebSocket.
 	sessionState := &SessionState{}
 	_, err := sessions.GetState(r, wsh.ctx.SigningKey, wsh.ctx.SessionStore, sessionState)
 	if err != nil {

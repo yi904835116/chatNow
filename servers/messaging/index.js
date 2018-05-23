@@ -16,7 +16,7 @@ const Channel = require('./models/channels/channel');
 const ChannelHandler = require('./handlers/channels_handler.js');
 const MessageHandler = require('./handlers/messages_handler.js');
 
-const amqp = require('amqplib/callback_api');
+const amqp = require('amqplib');
 const qName = 'testQ';
 const mqAddr = process.env.MQADDR
 const mqURL = `amqp://${mqAddr}`;
@@ -55,18 +55,15 @@ const portNum = parseInt(port);
                 // Stop continuing.
                 return;
             }
-            // Invoke next chained handler if the user is authenticated.
+            // Go to next chained handler if the user is authenticated.
             next();
         });
 
 
         // Innitialze connection to RabbitMQ.
-        var connection;
-        try{
-            connection = await amqp.connect(mqURL);
-        }catch(e){
-            console.log(e);
-        }
+        
+        var connection = await amqp.connect(mqURL);
+        
         // set up MQ channel
         let mqChannel = await connection.createChannel();
         
