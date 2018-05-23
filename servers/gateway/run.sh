@@ -27,6 +27,10 @@ export MESSAGES_ADDR=info-344-messaging:80
 export SUMMARYS_ADDR=info-344-summary:80
 
 
+#MQ
+export MQ_CONTAINER=rabbitmq-server
+export MQADDR=$MQ_CONTAINER:5672
+
 # Make sure to get the latest image.
 # pull most current version of example web site container image
 docker pull yi904835116/info344-server
@@ -54,7 +58,9 @@ if [ "$(docker ps -aq --filter name=$MYSQL_CONTAINER)" ]; then
     docker rm -f $MYSQL_CONTAINER
 fi
 
-
+if [ "$(docker ps -aq --filter name=$MQ_CONTAINER)" ]; then
+    docker rm -f $MQ_CONTAINER
+fi
 
 # Run MySQL Docker container
 docker run -d \
@@ -72,6 +78,17 @@ docker run \
 --restart unless-stopped \
 redis
 
+# Run RabbitMQ Docker container.
+docker run \
+-d \
+-p 5672:5672 \
+--network $APP_NETWORK \
+--name $MQ_CONTAINER \
+--hostname $MQ_CONTAINER \
+rabbitmq
+# rabbitmq:3-alpine
+
+# Run gateway Docker container
 docker run \
 -d \
 -p 443:443 \
@@ -80,6 +97,7 @@ docker run \
 -v /etc/letsencrypt:/etc/letsencrypt:ro \
 -e TLSCERT=$TLSCERT \
 -e TLSKEY=$TLSKEY \
+-e MQADDR=$MQADDR \
 -e SESSIONKEY=$SESSIONKEY \
 -e ADDR=$ADDR \
 -e MESSAGES_ADDR=$MESSAGES_ADDR \

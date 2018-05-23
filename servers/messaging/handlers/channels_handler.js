@@ -1,7 +1,10 @@
 const express = require("express");
-const Channel = require('./../models/channels/channel');
 const mongodb = require('mongodb');
 
+const Channel = require('./../models/channels/channel');
+const Message = require('./../models/messages/message');
+
+const sendToMQ = require('./messages_queue');
 
 function ChannelHandler(app, channelStore, messageStore) {
 
@@ -34,7 +37,7 @@ function ChannelHandler(app, channelStore, messageStore) {
         const userJSON = req.get('X-User');
         const user = JSON.parse(userJSON);
         const members = [];
-        if(req.body.members){
+        if (req.body.members) {
             members = req.body.members;
         }
 
@@ -44,6 +47,13 @@ function ChannelHandler(app, channelStore, messageStore) {
             .insert(channel)
             .then(channel => {
                 res.json(channel);
+                let message = {
+                    type: 'channel-new',
+                    channel: channel,
+                    userIDs: channel.members
+                };
+                sendToMQ(req, message);
+
             })
             .catch(err => {
                 console.log(err);
@@ -91,6 +101,7 @@ function ChannelHandler(app, channelStore, messageStore) {
         const user = JSON.parse(userJSON);
         const messageBody = req.body.body;
         const message = new Message(channelID, messageBody, user);
+        const members= [];
 
         channelStore
             .get(channelID)
@@ -104,6 +115,7 @@ function ChannelHandler(app, channelStore, messageStore) {
                         return;
                     }
                 }
+                members = channel.members
             })
             .catch(err => {
                 console.log(err);
@@ -114,6 +126,13 @@ function ChannelHandler(app, channelStore, messageStore) {
             .then(message => {
                 res.status(201);
                 res.json(message);
+                let data = {
+                    type: 'message-new',
+                    message: message,
+                    userIDs :members
+                };
+                sendToMQ(req, data);
+
             })
             .catch(err => {
                 console.log(err);
@@ -159,8 +178,14 @@ function ChannelHandler(app, channelStore, messageStore) {
         updates.editedAt = Date.now();
         channelStore
             .update(channelID, updates)
-            .then(updatedChannel => {
-                res.json(updatedChannel);
+            .then(updatedChan => {
+                res.json(updatedChan);
+                let message = {
+                    type: 'channel-update',
+                    channel: updatedChan,
+                    userIDs: updatedChan.members
+                };
+                sendToMQ(req, message);
             })
             .catch(err => {
                 console.log(err);
@@ -193,13 +218,21 @@ function ChannelHandler(app, channelStore, messageStore) {
                         .send('current user is not the creator of this channel');
                     return;
                 }
+
+                messageStore.deleteAll(channelID);
+                channelStore.delete(channelID);
+
+                let message = {
+                    type: 'channel-delete',
+                    channelID: channelID,
+                    userIDs: channel.members
+                };
+                sendToMQ(req, message);
             })
             .catch(err => {
                 console.log(err);
             });
 
-        messageStore.deleteAll(channelID);
-        channelStore.delete(channelID);
         res.set('Content-Type', 'text/plain');
         res
             .status(200)
@@ -319,18 +352,12 @@ function ChannelHandler(app, channelStore, messageStore) {
             });
     });
 
-    // // error handler that will be called if any handler earlier in the chain throws
-    // // an exception or passes an error to next()
-    // app.use((err, req, res, next) => {
-    //     //write a stack trace to standard out, which writes to the server's log
-    //     console.error(err.stack)
-
-    //     //but only report the error message to the client, with a 500 status code
-    //     res.set("Content-Type", "text/plain");
-    //     res
-    //         .status(500)
-    //         .send(err.message);
-    // });
+    // // error handler that will be called if any handler earlier in the chain
+    // throws // an exception or passes an error to next() app.use((err, req, res,
+    // next) => {     //write a stack trace to standard out, which writes to the
+    // server's log     console.error(err.stack)     //but only report the error
+    // message to the client, with a 500 status code     res.set("Content-Type",
+    // "text/plain");     res         .status(500)         .send(err.message); });
 
 };
 

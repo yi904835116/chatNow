@@ -32,8 +32,7 @@ docker run \
 --restart unless-stopped \
 mongo
 
-# No need to specify Redis port here,
-# because it is default to 6379.
+
 docker run \
 -d \
 -e ADDR=$MESSAGING_CONTAINER:80 \
