@@ -3,6 +3,8 @@ package users
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/info344-s18/challenges-yi904835116/servers/gateway/indexes"
 )
 
 // Various SQL statements we will need to execute.
@@ -10,6 +12,8 @@ import (
 // SQL to select a particular user by ID.
 // Use `?` for column values that we will get at runtime.
 const sqlSelectUserByID = "select * from user where id=?"
+
+const sqlSelectAll = "select * from user"
 
 // SQL to select a particular user by email.
 const sqlSelectUserByEmail = "select * from user where email=?"
@@ -123,12 +127,12 @@ func (store *MySQLStore) Insert(user *User) (*User, error) {
 	res, err := database.Exec(sqlInsertUser, user.Email, user.PassHash, user.UserName, user.FirstName, user.LastName, user.PhotoURL)
 
 	if err != nil {
-		fmt.Printf("error inserting new row: %v\n", err)
+		fmt.Errorf("error inserting new row: %v", err)
 	} else {
 		//get the auto-assigned ID for the new row
 		id, err := res.LastInsertId()
 		if err != nil {
-			fmt.Printf("error getting new ID: %v\n", id)
+			fmt.Errorf("error getting new ID: %v", id)
 		} else {
 			user.ID = id
 		}
@@ -165,6 +169,49 @@ func (store *MySQLStore) Delete(userID int64) error {
 	}
 
 	return nil
+}
+
+// Trie returns a trie tree thtat stores existing users info
+func (store *MySQLStore) Trie() (*indexes.Trie, error) {
+	trie := indexes.NewTrie()
+	rows, err := store.db.Query(sqlSelectAll)
+
+	if err != nil {
+		return nil, fmt.Errorf("error selecting user: %v", err)
+	}
+
+	defer rows.Close()
+
+	users, err := handleResult(rows)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning user: %s", err)
+	}
+
+	if len(users) == 0 {
+		return trie, nil
+	}
+
+	for _, user := range users {
+		trie.Insert(user.UserName, user.ID)
+		trie.Insert(user.LastName, user.ID)
+		trie.Insert(user.FirstName, user.ID)
+	}
+
+	return trie, nil
+}
+
+// ConvertIDToUsers converts all keys(User IDs) in a given map to a slice of User.
+func (store *MySQLStore) ConvertIDToUsers(userIDs map[int64]bool) ([]*User, error) {
+	users := []*User{}
+	for userID := range userIDs {
+		user, err := store.GetByID(userID)
+		if err != nil {
+			return nil, fmt.Errorf("error getting user: %v", err)
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
 
 // scanUsers scans query result rows into a []*User.

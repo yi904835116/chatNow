@@ -20,19 +20,12 @@ export SESSIONKEY=secretsigningkey
 
 export MYSQL_DATABASE=info_344
 
-
 export MYSQL_ADDR=$MYSQL_CONTAINER:3306
-# export MYSQL_ADDR=127.0.0.1:3306
 
-# dsn := fmt.Sprintf("root:%s@tcp(192.168.99.100:3306)/info_344", os.Getenv("MYSQL_ROOT_PASSWORD"))
+# Microservice addresses.
+export MESSAGES_ADDR=info-344-messaging:80
+export SUMMARYS_ADDR=info-344-summary:80
 
-# export DSN=root:$MYSQL_ROOT_PASSWORD@tcp(127.0.0.1:3306)/$DBNAME
-# export DSN=root:$MYSQL_ROOT_PASSWORD@tcp$MYSQL_ADDR/$DBNAME
-
-
-
-
-echo helloooooooooo
 
 # Make sure to get the latest image.
 # pull most current version of example web site container image
@@ -89,6 +82,8 @@ docker run \
 -e TLSKEY=$TLSKEY \
 -e SESSIONKEY=$SESSIONKEY \
 -e ADDR=$ADDR \
+-e MESSAGES_ADDR=$MESSAGES_ADDR \
+-e SUMMARYS_ADDR=$SUMMARYS_ADDR \
 -e REDISADDR=$REDISADDR \
 -e MYSQL_ADDR=$MYSQL_ADDR \
 -e MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD \

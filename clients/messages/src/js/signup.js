@@ -52,15 +52,6 @@ function handleSubmitSignupForm(e) {
             if (typeof data === 'string') {
                 throw Error(data);
             } else {
-                // this.refs.userName['value'] = '';
-                // this.refs.firstName['value'] = '';
-                // this.refs.lastName['value'] = '';
-                // this.refs.email['value'] = '';
-                // this.refs.password['value'] = '';
-                // this.refs.passwordConf['value'] = '';
-                // this.setState({
-                //     signupError: ''
-                // });
                 window.location.replace('app.html');
             }
         })

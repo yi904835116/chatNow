@@ -3,6 +3,8 @@ package attempts
 import (
 	"errors"
 	"time"
+
+	"github.com/info344-s18/challenges-yi904835116/servers/gateway/indexes"
 )
 
 // ErrAttemptNotFound is returned if no Attempt is found
@@ -16,4 +18,6 @@ type Store interface {
 	Get(email string, attempt *Attempt) error
 
 	Delete(email string) error
+
+	Trie() *indexes.Trie
 }

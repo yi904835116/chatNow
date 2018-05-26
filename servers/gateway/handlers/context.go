@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"github.com/info344-s18/challenges-yi904835116/servers/gateway/indexes"
 	"github.com/info344-s18/challenges-yi904835116/servers/gateway/models/users"
-	// "github.com/info344-s18/challenges-yi904835116/servers/gateway/models/attempts"
 	"github.com/info344-s18/challenges-yi904835116/servers/gateway/sessions"
 )
 
@@ -24,12 +24,14 @@ type HandlerContext struct {
 	// rather than an actual Store implementation.
 	SessionStore sessions.Store
 	UserStore    users.Store
+
+	Trie *indexes.Trie
 	// AttemptStore attempts.Store
 }
 
 // NewHandlerContext constructs a new HanderContext,
 // ensuring that the dependencies are valid values.
-func NewHandlerContext(signingKey string, sessionStore sessions.Store, userStore users.Store) *HandlerContext {
+func NewHandlerContext(signingKey string, sessionStore sessions.Store, userStore users.Store, trie *indexes.Trie) *HandlerContext {
 
 	if len(signingKey) == 0 {
 		panic("signing key has length of zero")
@@ -43,6 +45,10 @@ func NewHandlerContext(signingKey string, sessionStore sessions.Store, userStore
 		panic("nil user store")
 	}
 
-	return &HandlerContext{signingKey, sessionStore, userStore} // attemptStore
+	if trie == nil {
+		panic("nil trie tree")
+	}
+
+	return &HandlerContext{signingKey, sessionStore, userStore, trie}
 
 }

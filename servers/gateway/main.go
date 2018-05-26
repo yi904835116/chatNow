@@ -70,33 +70,57 @@ func main() {
 		DBName: dbName,
 		Net:    "tcp",
 	}
+
 	db, err := sql.Open("mysql", config.FormatDSN())
 	if err != nil {
 		log.Fatalf("error opening mysql: %v", err)
 
 	}
 
-	defer db.Close()
-
 	userStore := users.NewMySQLStore(db)
 
-	context := handlers.NewHandlerContext(sessionKey, sessionStore, userStore)
-	// , attemptStore, resetCodeStore
+	// _, err = db.Query("select * from user")
+	// if err != nil {
+	// 	log.Fatalf("error select all: %v", err)
+	// }
+
+	trieTree, err := userStore.Trie()
+
+	defer db.Close()
+
+	if err != nil {
+		log.Fatalf("error constructing user trie tree: %v", err)
+	}
+
+	context := handlers.NewHandlerContext(sessionKey, sessionStore, userStore, trieTree)
+
+	// Messaging microservice addresses.
+	msgAddrs := os.Getenv("MESSAGES_ADDR")
+	if len(msgAddrs) == 0 {
+		log.Fatal("Please set MESSAGES_ADDR environment variables")
+	}
+
+	// Summary microservice addresses.
+	sumAddrs := os.Getenv("SUMMARYS_ADDR")
+	if len(sumAddrs) == 0 {
+		log.Fatal("Please set SUMMARYS_ADDR environment variables")
+	}
 
 	mux := http.NewServeMux()
 
-	// mux.HandleFunc("/", handlers.RootHandler)
-	mux.HandleFunc("/v1/summary", handlers.SummaryHandler)
-
-	// Gateway
+	// Gateway of user authentication
 	mux.HandleFunc("/v1/users", context.UsersHandler)
 	mux.HandleFunc("/v1/users/", context.SpecificUserHandler)
 
 	mux.HandleFunc("/v1/sessions", context.SessionsHandler)
 	mux.HandleFunc("/v1/sessions/", context.SpecificSessionHandler)
 
-	// mux.HandleFunc("/v1/resetcodes", context.ResetCodesHandler)
-	// mux.HandleFunc("/v1/passwords", context.ResetPasswordHandler)
+	// Summary microservice.
+	mux.Handle("/v1/summary", handlers.NewServiceProxy(sumAddrs, context))
+	// Messaging microservice.
+	mux.Handle("/v1/channels", handlers.NewServiceProxy(msgAddrs, context))
+	mux.Handle("/v1/channels/", handlers.NewServiceProxy(msgAddrs, context))
+	mux.Handle("/v1/messages/", handlers.NewServiceProxy(msgAddrs, context))
 
 	corsMux := handlers.NewCORShandler(mux)
 
