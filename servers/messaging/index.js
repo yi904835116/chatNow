@@ -16,6 +16,13 @@ const Channel = require('./models/channels/channel');
 const ChannelHandler = require('./handlers/channels_handler.js');
 const MessageHandler = require('./handlers/messages_handler.js');
 
+const amqp = require('amqplib');
+const qName = 'testQ';
+const mqAddr = process.env.MQADDR
+const mqURL = `amqp://${mqAddr}`;
+
+
+
 const addr = process.env.ADDR || 'localhost:4000';
 const [host,
     port] = addr.split(':');
@@ -48,9 +55,22 @@ const portNum = parseInt(port);
                 // Stop continuing.
                 return;
             }
-            // Invoke next chained handler if the user is authenticated.
+            // Go to next chained handler if the user is authenticated.
             next();
         });
+
+
+        // Innitialze connection to RabbitMQ.
+        
+        var connection = await amqp.connect(mqURL);
+        
+        // set up MQ channel
+        let mqChannel = await connection.createChannel();
+        
+        let qConf = await mqChannel.assertQueue(qName, { durable: false });
+        app.set('mqChannel', mqChannel);
+        app.set('qName', qName);
+
 
         // Initialize Mongo stores.
         let channelStore = new ChannelStore(db, 'channels');
@@ -65,7 +85,7 @@ const portNum = parseInt(port);
 
         // API resource handlers.
         ChannelHandler(app, channelStore, messageStore);
-        MessageHandler(app, messageStore);
+        MessageHandler(app,channelStore ,messageStore);
 
         app.listen(portNum, host, () => {
             console.log(`server is listening at http://${addr}`);
