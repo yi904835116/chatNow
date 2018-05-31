@@ -20,7 +20,7 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.post("/v1/channels", (req, res, next) => {
-        const name = req.body.name;
+        let name = req.body.name;
         if (!name) {
             res.set('Content-Type', 'text/plain');
             res
@@ -34,15 +34,15 @@ function ChannelHandler(app, channelStore, messageStore) {
             description = req.body.description;
         }
 
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const members = [];
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let members = [];
         if (req.body.members) {
             members = req.body.members;
         }
 
         members.push(user.id);
-        const channel = new Channel(name, description, true, members, user);
+        let channel = new Channel(name, description, true, members, user);
         channelStore
             .insert(channel)
             .then(channel => {
@@ -62,8 +62,8 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.get("/v1/channels/:channelID", (req, res, next) => {
-        const id = req.params.channelID;
-        const channelID = new mongodb.ObjectID(id);
+        let id = req.params.channelID;
+        let channelID = new mongodb.ObjectID(id);
 
         channelStore
             .get(channelID)
@@ -95,13 +95,13 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.post("/v1/channels/:channelID", (req, res, next) => {
-        const id = req.params.channelID;
-        const channelID = new mongodb.ObjectID(id);
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const messageBody = req.body.body;
-        const message = new Message(channelID, messageBody, user);
-        const members= [];
+        let id = req.params.channelID;
+        let channelID = new mongodb.ObjectID(id);
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let messageBody = req.body.body;
+        let message = new Message(channelID, messageBody, user);
+        let members= [];
 
         channelStore
             .get(channelID)
@@ -140,10 +140,10 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.patch("/v1/channels/:channelID", (req, res, next) => {
-        const id = req.params.channelID;
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const channelID = new mongodb.ObjectID(id);
+        let id = req.params.channelID;
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let channelID = new mongodb.ObjectID(id);
         channelStore
             .get(channelID)
             .then(channel => {
@@ -168,7 +168,7 @@ function ChannelHandler(app, channelStore, messageStore) {
                 console.log(err);
             });
 
-        const updates = {};
+        let updates = {};
         if (req.body.name) {
             updates.name = req.body.name;
         }
@@ -194,10 +194,10 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.delete("/v1/channels/:channelID", (req, res, next) => {
-        const id = req.params.channelID;
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const channelID = new mongodb.ObjectID(id);
+        let id = req.params.channelID;
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let channelID = new mongodb.ObjectID(id);
 
         channelStore
             .get(channelID)
@@ -240,11 +240,11 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.post("/v1/channels/:channelID/members", (req, res, next) => {
-        const id = req.params.channelID;
-        const channelID = new mongodb.ObjectID(id);
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const body = req.body;
+        let id = req.params.channelID;
+        let channelID = new mongodb.ObjectID(id);
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let body = req.body;
         let members = null;
 
         channelStore
@@ -272,7 +272,7 @@ function ChannelHandler(app, channelStore, messageStore) {
                 console.log(err);
             });
 
-        const updates = {};
+        let updates = {};
 
         members.push(body.id);
         if (members) {
@@ -295,11 +295,11 @@ function ChannelHandler(app, channelStore, messageStore) {
     });
 
     app.delete("/v1/channels/:channelID/members", (req, res, next) => {
-        const id = req.params.channelID;
-        const channelID = new mongodb.ObjectID(id);
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const body = req.body;
+        let id = req.params.channelID;
+        let channelID = new mongodb.ObjectID(id);
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let body = req.body;
         let members = null;
 
         channelStore
@@ -327,7 +327,7 @@ function ChannelHandler(app, channelStore, messageStore) {
                 console.log(err);
             });
 
-        const updates = {};
+        let updates = {};
 
         let index = members.indexOf(body.id);
         if (index > -1) {

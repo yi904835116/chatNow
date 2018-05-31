@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nbutton23/zxcvbn-go"
+
 	"github.com/info344-s18/challenges-yi904835116/servers/gateway/models/users"
 	"github.com/info344-s18/challenges-yi904835116/servers/gateway/sessions"
 )
@@ -76,6 +78,12 @@ func (context *HandlerContext) UsersHandler(w http.ResponseWriter, r *http.Reque
 
 		err := json.NewDecoder(r.Body).Decode(newUser)
 
+		// msValuePtr := reflect.ValueOf(&ms)
+		// msValue := msValuePtr.Elem()
+
+		// for
+
+		zxcvbn.PasswordStrength(newUser.Password, userInput)
 		if err != nil {
 			http.Error(w, "error in JSON decoding. invalid JSON in request body", http.StatusBadRequest)
 			return

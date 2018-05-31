@@ -13,7 +13,6 @@ class Message {
 
         this.editedAt = Date.now();
 
-        // this.summaries = [];
 
         // Note: message object has another property id, which will be created
         // when we insert it to MongoDB.
