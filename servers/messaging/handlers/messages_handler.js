@@ -99,14 +99,12 @@ function MessageHandler(app, channelStore, messageStore) {
             });
     });
 
-    // Allow message creator to modify this message.
+    // Allow user to interat with a certain message
     app.post('/v1/messages/:messageID/reactions', (req, res, next) => {
         let userJSON = req.get('X-User');
         let user = JSON.parse(userJSON);
         let messageID = new mongodb.ObjectID(req.params.messageID);
-        var channelID;
         var channel;
-
         let emoji = req.body.emoji;
         res.set('Content-Type', 'text/plain');
 
@@ -140,10 +138,7 @@ function MessageHandler(app, channelStore, messageStore) {
                         .status(201)
                         .send('reacted with this message');
                     return;
-
                 }
-
-                channelID = message.channelID;
             })
             .catch(err => {
                 console.log(err);

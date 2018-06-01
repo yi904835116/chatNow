@@ -71,6 +71,7 @@ function ChannelHandler(app, channelStore, messageStore) {
                 if (channel.privateChannel && channel.members) {
                     let userJSON = req.get('X-User');
                     let user = JSON.parse(userJSON);
+
                     if (members.indexOf(user.id) == -1) {
                         res.set('Content-Type', 'text/plain');
                         res
@@ -101,17 +102,20 @@ function ChannelHandler(app, channelStore, messageStore) {
         let user = JSON.parse(userJSON);
         let messageBody = req.body.body;
         let message = new Message(channelID, messageBody, user);
-        let members= [];
+        let members = [];
 
         channelStore
             .get(channelID)
             .then(channel => {
                 if (channel.privateChannel && channel.members) {
-                    if (members.indexOf(user.id) == -1) {
+                    let indexOf = channel
+                        .members
+                        .indexOf(user.id)
+                    if (indexOf == -1) {
                         res.set('Content-Type', 'text/plain');
                         res
                             .status(403)
-                            .send('current user is not a member in this channel');
+                            .send("members.indexOf(user.id)  " + indexOf + 'channel.members   ' + channel.members + " user.id  " + user.id);
                         return;
                     }
                 }
@@ -124,12 +128,11 @@ function ChannelHandler(app, channelStore, messageStore) {
         messageStore
             .insert(message)
             .then(message => {
-                res.status(201);
                 res.json(message);
                 let data = {
                     type: 'message-new',
                     message: message,
-                    userIDs :members
+                    userIDs: members
                 };
                 sendToMQ(req, data);
 
@@ -245,7 +248,7 @@ function ChannelHandler(app, channelStore, messageStore) {
         let userJSON = req.get('X-User');
         let user = JSON.parse(userJSON);
         let body = req.body;
-        let members = null;
+        let member = null;
 
         channelStore
             .get(channelID)
@@ -267,26 +270,22 @@ function ChannelHandler(app, channelStore, messageStore) {
                     return;
                 }
                 members = channel.members;
-            })
-            .catch(err => {
-                console.log(err);
-            });
+                let updates = {};
 
-        let updates = {};
+                members.push(body.id);
+                if (members) {
+                    updates.members = members;
+                }
 
-        members.push(body.id);
-        if (members) {
-            updates.members = members;
-        }
-
-        updates.editedAt = Date.now();
-        channelStore
-            .update(channelID, updates)
-            .then(updatedChannel => {
-                res.set('Content-Type', 'text/plain');
-                res
-                    .status(201)
-                    .send('member has been added to the channel');
+                updates.editedAt = Date.now();
+                channelStore
+                    .update(channelID, updates)
+                    .then(updatedChannel => {
+                        res.set('Content-Type', 'text/plain');
+                        res
+                            .status(201)
+                            .send('member has been added to the channel');
+                    });
             })
             .catch(err => {
                 console.log(err);

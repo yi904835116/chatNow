@@ -11,6 +11,7 @@ var ErrUserNotFound = errors.New("user not found")
 
 //Store represents a store for Users
 type Store interface {
+	GetAll() ([]*User, error)
 	//GetByID returns the User with the given ID
 	GetByID(id int64) (*User, error)
 
