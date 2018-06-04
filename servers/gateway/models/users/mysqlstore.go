@@ -57,6 +57,26 @@ func NewMySQLStore(db *sql.DB) *MySQLStore {
 	}
 }
 
+// GetAll returns the User with the given ID.
+func (store *MySQLStore) GetAll() ([]*User, error) {
+	rows, err := store.db.Query(sqlSelectAll)
+	if err != nil {
+		return nil, fmt.Errorf("error selecting all user: %v", err)
+	}
+
+	users, err := handleResult(rows)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning user: %s", err)
+	}
+
+	// if len(users) == 0 {
+	// 	return nil, fmt.Errorf("no user foundxxxxx")
+	// }
+
+	// Return the first (and only) element from the slice.
+	return users, nil
+}
+
 // GetByID returns the User with the given ID.
 func (store *MySQLStore) GetByID(id int64) (*User, error) {
 	rows, err := store.db.Query(sqlSelectUserByID, id)
@@ -174,17 +194,10 @@ func (store *MySQLStore) Delete(userID int64) error {
 // Trie returns a trie tree thtat stores existing users info
 func (store *MySQLStore) Trie() (*indexes.Trie, error) {
 	trie := indexes.NewTrie()
-	rows, err := store.db.Query(sqlSelectAll)
+	users, err := store.GetAll()
 
 	if err != nil {
-		return nil, fmt.Errorf("error selecting user: %v", err)
-	}
-
-	defer rows.Close()
-
-	users, err := handleResult(rows)
-	if err != nil {
-		return nil, fmt.Errorf("error scanning user: %s", err)
+		return nil, fmt.Errorf("error get all users : %v", err)
 	}
 
 	if len(users) == 0 {

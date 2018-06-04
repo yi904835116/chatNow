@@ -13,9 +13,9 @@ function MessageHandler(app, channelStore, messageStore) {
 
     // Allow message creator to modify this message.
     app.patch('/v1/messages/:messageID', (req, res, next) => {
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const messageID = new mongodb.ObjectID(req.params.messageID);
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let messageID = new mongodb.ObjectID(req.params.messageID);
         var channelID;
         var channel;
         messageStore
@@ -34,7 +34,7 @@ function MessageHandler(app, channelStore, messageStore) {
                 channel = channelStore.get(channelID)
             })
             .then(() => {
-                const updates = {
+                let updates = {
                     body: req.body.body,
                     editedAt: Date.now()
                 };
@@ -58,12 +58,11 @@ function MessageHandler(app, channelStore, messageStore) {
 
     // Allow message creator to delete this message.
     app.delete('/v1/messages/:messageID', (req, res, next) => {
-        const userJSON = req.get('X-User');
-        const user = JSON.parse(userJSON);
-        const messageID = new mongodb.ObjectID(req.params.messageID);
-        var channelID;
-        var channel;
-
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let messageID = new mongodb.ObjectID(req.params.messageID);
+        let channelID;
+        let channel;
 
         messageStore
             .get(messageID)
@@ -77,8 +76,8 @@ function MessageHandler(app, channelStore, messageStore) {
                 }
                 channelID = message.channelID;
             })
-            .then(() =>{
-                channel= channelStore.get(channelID);
+            .then(() => {
+                channel = channelStore.get(channelID);
             })
             .then(() => {
                 return messageStore.delete(messageID);
@@ -98,6 +97,61 @@ function MessageHandler(app, channelStore, messageStore) {
             .catch(err => {
                 console.log(err);
             });
+    });
+
+    // Allow user to interat with a certain message
+    app.post('/v1/messages/:messageID/reactions', (req, res, next) => {
+        let userJSON = req.get('X-User');
+        let user = JSON.parse(userJSON);
+        let messageID = new mongodb.ObjectID(req.params.messageID);
+        var channel;
+        let emoji = req.body.emoji;
+        res.set('Content-Type', 'text/plain');
+
+        messageStore
+            .get(messageID)
+            .then(message => {
+                // let reaction = JSON.parse(message.reaction);
+                let reaction = message.reaction;
+                let updates = {};
+                if (message.reaction) {
+                    if (reaction.hasOwnProperty(emoji)) {
+                        if (reaction[emoji].includes(user.userName)) {
+                            res
+                                .status(200)
+                                .send('you have already reacted with this message');
+                            return;
+                        } else {
+                            updates.reaction = reaction
+                            updates.reaction[emoji].push(user.userName);
+                            messageStore
+                                .update(messageID, updates)
+                                .then(() => {
+                                    res
+                                        .status(201)
+                                        .send('reacted with this message');
+                                })
+                            return;
+                        }
+                    }
+                } else {
+                    updates.reaction = {};
+                    updates.reaction[emoji] = [];
+                    updates.reaction[emoji].push(user.userName);
+                    messageStore
+                        .update(messageID, updates)
+                        .then(() => {
+                            res
+                                .status(201)
+                                .send('reacted with this message');
+                        })
+                    return;
+                }
+            })
+            .catch(err => {
+                console.log(err);
+            });
+
     });
 
 }

@@ -80,14 +80,9 @@ func main() {
 
 	userStore := users.NewMySQLStore(db)
 
-	// _, err = db.Query("select * from user")
-	// if err != nil {
-	// 	log.Fatalf("error select all: %v", err)
-	// }
+	time.Sleep(time.Duration(10) * time.Second)
 
 	trieTree, err := userStore.Trie()
-
-	defer db.Close()
 
 	if err != nil {
 		log.Fatalf("error constructing user trie tree: %v", err)
@@ -100,6 +95,8 @@ func main() {
 	if len(msgAddrs) == 0 {
 		log.Fatal("Please set MESSAGES_ADDR environment variables")
 	}
+
+	defer db.Close()
 
 	// Summary microservice addresses.
 	sumAddrs := os.Getenv("SUMMARYS_ADDR")

@@ -12,6 +12,7 @@ import (
 
 	"github.com/info344-s18/challenges-yi904835116/servers/gateway/models/users"
 	"github.com/info344-s18/challenges-yi904835116/servers/gateway/sessions"
+	"github.com/nbutton23/zxcvbn-go"
 )
 
 //TODO: define HTTP handler functions as described in the
@@ -76,6 +77,16 @@ func (context *HandlerContext) UsersHandler(w http.ResponseWriter, r *http.Reque
 
 		err := json.NewDecoder(r.Body).Decode(newUser)
 
+		userInput := []string{newUser.Email, newUser.FirstName, newUser.LastName, newUser.UserName}
+
+		strength := zxcvbn.PasswordStrength(newUser.Password, userInput)
+
+		// score range [0,1,2,3,4] if crack time is less than # [10^2, 10^4, 10^6, 10^8, Infinity].
+		if strength.Score <= 2 {
+			http.Error(w, "password are not strong enough, please choose a stronger password", http.StatusBadRequest)
+			return
+		}
+
 		if err != nil {
 			http.Error(w, "error in JSON decoding. invalid JSON in request body", http.StatusBadRequest)
 			return
@@ -95,6 +106,7 @@ func (context *HandlerContext) UsersHandler(w http.ResponseWriter, r *http.Reque
 			http.Error(w, fmt.Sprintf("error converting new user to user: %s", err), http.StatusBadRequest)
 			return
 		}
+
 		// Ensure there isn't already a user in the user store with the same email address.
 		_, err = context.UserStore.GetByEmail(newUser.Email)
 		if err == nil {

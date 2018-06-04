@@ -62,6 +62,12 @@ if [ "$(docker ps -aq --filter name=$MQ_CONTAINER)" ]; then
     docker rm -f $MQ_CONTAINER
 fi
 
+
+if [ "$(docker images -q -f dangling=true)" ]; then
+    docker rmi $(docker images -q -f dangling=true)
+fi
+
+
 # Run MySQL Docker container
 docker run -d \
 --name $MYSQL_CONTAINER \
