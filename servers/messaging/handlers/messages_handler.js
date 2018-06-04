@@ -113,6 +113,7 @@ function MessageHandler(app, channelStore, messageStore) {
             .then(message => {
                 // let reaction = JSON.parse(message.reaction);
                 let reaction = message.reaction;
+                let updates = {};
                 if (message.reaction) {
                     if (reaction.hasOwnProperty(emoji)) {
                         if (reaction[emoji].includes(user.userName)) {
@@ -121,22 +122,29 @@ function MessageHandler(app, channelStore, messageStore) {
                                 .send('you have already reacted with this message');
                             return;
                         } else {
-                            reaction[emoji].push(user.userName);
-
-                            messageStore.update(messageID, reaction);
-                            res
-                                .status(201)
-                                .send('reacted with this message');
+                            updates.reaction = reaction
+                            updates.reaction[emoji].push(user.userName);
+                            messageStore
+                                .update(messageID, updates)
+                                .then(() => {
+                                    res
+                                        .status(201)
+                                        .send('reacted with this message');
+                                })
                             return;
                         }
                     }
                 } else {
-                    reaction = {};
-                    reaction[emoji] = [];
-                    reaction[emoji].push(user.userName);
-                    res
-                        .status(201)
-                        .send('reacted with this message');
+                    updates.reaction = {};
+                    updates.reaction[emoji] = [];
+                    updates.reaction[emoji].push(user.userName);
+                    messageStore
+                        .update(messageID, updates)
+                        .then(() => {
+                            res
+                                .status(201)
+                                .send('reacted with this message');
+                        })
                     return;
                 }
             })
