@@ -1,8 +1,10 @@
-A online chat web application that allows users to sign in/sign up, update profile, search users, create channels, and chat in real-time.
+A online chat web application that allows users to sign in/sign up, update profile, search users, create channels, and chat in real-time
+
+
 
 ## Core Technologies
 
-### Server-Side
+### API Server 
 
 * Go
 * Node.js
@@ -15,7 +17,11 @@ A online chat web application that allows users to sign in/sign up, update profi
 * Concurrent programming with Mutex and channels
 
 ## Features
-
+* Implemented user login with HTTPS Auth, Middleware, credential/session encryption with bcrpt and hmac
+* Modelled and trained a NPL chatbot using Wit.ai and created a Node.js microservice that handles user’s
+chat-related questions
+* Enabled Websocket for real-time notification with Concurrency using goroutine, go channel, and Mutex Lock
+* Deployed the go and Node servers and web client using Docker and Digital Ocean
 * Suggest-as-you-type searching (Trie implementation)
 * Dynamic service discovery
 * Allow users to react to a message using an emoji.
